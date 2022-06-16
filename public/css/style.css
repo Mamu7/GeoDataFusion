@@ -1,0 +1,56 @@
+#map {
+  height: 800px;
+  width: 100%;
+}
+
+.tw1 {
+  background-color: lightblue;
+}
+
+#next {
+  background-color: #f1f1f1;
+  font-size: 2em;
+  float: right;
+}
+#prev {
+  background-color: #f1f1f1;
+  font-size: 2em;
+}
+#nextprev {
+  margin: auto;
+  width: 100%;
+  padding-left: 20%;
+  padding-right: 20%;
+}
+#pageCounter {
+    margin-left: auto;
+    margin-right: auto;
+}
+ .tiles {
+   padding: 10px;
+   padding-left: 20px;
+   padding-right: 20px;
+ }
+
+* {
+  box-sizing: border-box;
+}
+.column {
+  float: left;
+  padding: 1px;
+}
+
+.left {
+  width: 75%;
+}
+
+.right {
+  width: 25%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}

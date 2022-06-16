@@ -1,0 +1,25 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "base-64": "^1.0.0",
+    "browserify": "^17.0.0",
+    "crypto-js": "^4.1.1",
+    "express": "^4.18.1",
+    "mongodb": "^4.7.0",
+    "node-fetch": "^2.6.7",
+    "node-geocoder": "^4.0.0",
+    "node-stream-zip": "^1.15.0",
+    "twitter-api-v2": "^1.12.2",
+    "xml-js": "^1.6.11",
+    "yauzl": "^2.10.0"
+  }
+}

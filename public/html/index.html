@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+      integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+      crossorigin=""/>
+      <link rel="stylesheet" href="css/style.css">
+      <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+      integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+      crossorigin=""></script>
+      <script type="module" src="js/script.js"></script>
+  </head>
+  <body>
+    <div class="row">
+      <div class="column left">
+        <div id="map"></div>
+        <div class="row">
+          <p id="text1"> Klicken um Area of Interest mit Radius von 50 km zu setzen! </p>
+          <div>
+            <input id="input1" type="text" value="50" width="10px">  </input>
+            <button id="button1"> Radius setzen </button>
+            <button id="button2" disabled="true"> Tweets finden! </button>
+            <br>
+
+          </div>
+          <div class="row">
+            <p id="text2">Klicken um nach Satellitenbildern mit folgenden Parametern zu suchen:</p>
+            <p id="text3">Erstellungszeitpunkt 5 Tage vor/nach der Erstellung des Posts</p>
+            <p id="text4">Maximal 50 % Wolkenbedeckung</p>
+            <input id="input2" type="text" name="" value="5" style="display:inline">
+            <button id="buttonTime" style="display:inline"> Zeitspanne setzen </button>
+            <input id="input3" type="text" name="" value="50" style="display:inline">
+            <button id="buttonClouds" style="display:inline"> Maximale Wolkenbedeckung setzen </button>
+            <button id="buttonSat" style="display:inline" disabled="true"> Satellitenbilder finden! </button>
+            <div style="display:inline">
+              <br><br>
+              <button class="tiles" id="prevTiles" disabled="true"><<<</button>
+              <button class="tiles" id="tiles0" disabled="true">__</button>
+              <button class="tiles" id="tiles1" disabled="true">__</button>
+              <button class="tiles" id="tiles2" disabled="true">__</button>
+              <button class="tiles" id="tiles3" disabled="true">__</button>
+              <button class="tiles" id="tiles4" disabled="true">__</button>
+              <button class="tiles" id="tiles5" disabled="true">__</button>
+              <button class="tiles" id="tiles6" disabled="true">__</button>
+              <button class="tiles" id="tiles7" disabled="true">__</button>
+              <button class="tiles" id="tiles8" disabled="true">__</button>
+              <button class="tiles" id="tiles9" disabled="true">__</button>
+              <button class="tiles" id="nextTiles" disabled="true">>>></button>
+              <a id="pageCounterTiles">0 / 0</a>
+            </div>
+          </div>
+        </div>
+        <div class="">
+          <p id="p10"></p>
+          <button id="buttonTranslate" style="display:none">Übersetzen</button>
+          <p id="answer"></p>
+        </div>
+      </div>
+      <div class="column right">
+        <div>
+          <div id="nextprev">
+            <button id="prev" disabled="true"><<<</button>
+            <a id="pageCounter"></a>
+            <button id="next" disabled="true">>>></button>
+          </div>
+          <div class="tw1" id="tweetButton0">
+            <p id="p0"></p>
+          </div>
+          <div class="tw2" id="tweetButton1">
+            <p id="p1"></p>
+          </div>
+          <div class="tw1" id="tweetButton2">
+            <p id="p2"></p>
+          </div>
+          <div class="tw2" id="tweetButton3">
+            <p id="p3"></p>
+          </div>
+          <div class="tw1" id="tweetButton4">
+            <p id="p4"></p>
+          </div>
+          <div class="tw2" id="tweetButton5">
+            <p id="p5"></p>
+          </div>
+          <div class="tw1" id="tweetButton6">
+            <p id="p6"></p>
+          </div>
+          <div class="tw2" id="tweetButton7">
+            <p id="p7"></p>
+          </div>
+          <div class="tw1" id="tweetButton8">
+            <p id="p8"></p>
+          </div>
+          <div class="tw2" id="tweetButton9">
+            <p id="p9"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+    <script type="text/javascript">
+    </script>
+
+
+
+  </body>
+</html>
