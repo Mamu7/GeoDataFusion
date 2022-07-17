@@ -12,7 +12,11 @@ const urlAPILocation = "https://localhost:3000/geocoding/";                     
 const urlAPICopernicusSearch = "https://localhost:3000/copernicusSearch/";            //URL API Anbindung copernicus Suche
 const urlAPICopernicusMapTiles = "https://localhost:3000/copernicusMapTiles/";        //URL API Anbindung copernicus mapTiles
 const urlAPIPlanetSearch = "https://localhost:3000/planetSearch/";                    //URL API Anbindung Planet Suche
+const urlAPIPlanetOrders = "https://localhost:3000/planetOrders/";                    //URL API Anbindung Planet Order
+const urlAPIPlanetOrder = "https://localhost:3000/planetOrder/";                      //URL API Anbindung Planet Order
 const urlAPIPlanetMapTiles = "https://localhost:3000/planetMaptiles/";                //URL API Anbindung Planet mapTiles
+const urlAPIPlanetDownload = "https://localhost:3000/planetDownload/";                //URL API Anbindung Planet mapTiles
+const urlDownloading = "https://localhost:3000/downloading/";                         //URL Anbindung Downloadstatus Server
 
 function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {    //Distanz zwischen zwei Punkten errechnen
   var R = 6371; // Radius of the earth in km
@@ -39,6 +43,9 @@ var text1 = document.getElementById("text1");
 var button1 = document.getElementById("button1");
 var radiusInput = document.getElementById("input1");
 var circle = new L.circle();
+var pStyle = {
+  "color": "#ffffff",
+  "fillOpacity": 0 };
 
 var map = L.map('map').setView([49.5, 32.0], 6);
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -175,7 +182,8 @@ var pageCounterTiles = document.getElementById("pageCounterTiles");
 var currentTilePicked = -1;
 var polygonDrawn = false;
 var pickedTile = "";
-var downloading = false;
+var downloadingCopernicus = 0;
+var downloadingPlanet = 0;
 var status = "error";
 
 
@@ -830,9 +838,56 @@ async function searchPlanet(lat, long, dateA, dateB, maxCloudCover) {
     }
 }
 
+/* Anfrage an Server nach Downloadstatus */
+async function getDownloading() {
+  try {
+    var url = urlDownloading;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin'
+      });
+    const responseData = await response.json();
+    return responseData;
+    } catch (error) {
+      console.error(error);
+    }
+}
+
+/* Anfrage für Download eines MapTiles an Copernicus API mit ID */
+async function copernicusDownload(uuid) {
+  try {
+    var url = urlAPICopernicusMapTiles + uuid;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin'
+      });
+    const responseData = await response.json();
+    return responseData;
+    } catch (error) {
+      console.error(error);
+    }
+}
+
 /* Anfrage für Download eines MapTiles an Copernicus API mit ID */
 async function copernicusMapTiles(uuid) {
-  console.log("downloading " + uuid);
+  var downloading = await getDownloading();
+  downloadingCopernicus = downloading[0];
+  if (downloadingCopernicus.length <= 2) {
+    console.log("downloading " + uuid);
+    var temp = await copernicusDownload(uuid);
+    var finished = true;
+    while (finished === false) {
+      downloading = await getDownloading();
+
+    }
+    if (temp !== "error") {
+      console.log("finished downloading " + uuid);
+    } else {
+      console.log("download of " + uuid + " failed");
+    }
+  } else {
+    console.log("Downloadkapazität erreicht");
+  }
   /*
   try {
     var url = copernicusMapTiles + uuid;
@@ -851,19 +906,141 @@ async function copernicusMapTiles(uuid) {
     }*/
 }
 
+/* Download Planet */
+async function planetDownload(id) {
+  try {
+    var url = urlAPIPlanetDownload + id;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin'
+      });
+    //const responseData = await response.json();
+    //return responseData;
+    } catch (error) {
+      console.error(error);
+    }
+}
+
 /* Anfrage für Download eines MapTiles an Planet API mit ID */
 async function planetMapTiles(uuid) {
-  console.log("downloading " + uuid);
+  var downloading = await getDownloading();
+  downloadingPlanet = downloading[1];
+  if (downloadingPlanet.length <= 2) {
+    console.log("downloading " + uuid);
+    buttonDownload.innerHTML = "downloading..."
+    for (var i = 0; i < tilesList.length; i++) {
+      tilesList[i].disabled = true;
+    }
+    checkDownload(uuid);
+    var temp = await planetDownload(uuid);
+  } else {
+    console.log("Downloadkapazität erreicht");
+  }
+}
+
+/* Downloadstatus Check */
+async function checkDownload(uuid) {
+  setTimeout(async function(){
+    var stillRunning = false;
+    var downloading = await getDownloading();
+    for (var i = 0; i < downloading.length; i++) {
+      if (downloading[i] === uuid) {
+        stillRunning = true;
+      }
+    }
+    console.log(downloading);
+    console.log(uuid);
+    console.log(stillRunning);
+    if (stillRunning) {
+      checkDownload(uuid);
+    } else {
+      console.log("finished downloading " + uuid);
+      buttonDownload.innerHTML = "Anzeigen";
+      mapTilesIDs[pickedTile][2] = "downloaded";
+      pickTile(pickedTile);
+    }
+  }, 5000)
+}
+
+/* Anfrage für Order eines MapTiles an Planet API mit ID */
+async function makePlanetOrder(id) {
+  try {
+    var url = urlAPIPlanetMapTiles + id;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin'
+      });
+    const responseData = await response.json();
+    console.log(responseData);
+    return responseData;
+    } catch (error) {
+      console.error(error);
+    }
 }
 
 /* Anfrage für Order eines MapTiles an Planet API mit ID */
 async function planetOrder(uuid) {
   console.log("ordering " + uuid);
+  var temp = await makePlanetOrder(uuid);
+  console.log(temp);
+  refreshStatus(uuid);
+}
+
+/*Anfrage an Planet API um Status der Order zu aktualisieren */
+async function getOrderStatus(id) {
+  try {
+    var url = urlAPIPlanetOrder + id;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin'
+      });
+    const responseData = await response.json();
+    return responseData;
+    } catch (error) {
+      console.error(error);
+    }
+}
+
+/* Anfrage an DB um Status zu aktualisieren */
+async function updateOrderStatusDB(id, status) {
+  var data = {mapTileID: id, status: status};
+  var dataJSON = JSON.stringify(data);
+  try {
+    var url = urlDBMapTiles;
+    const response = await fetch(url, {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: dataJSON,
+      });
+    const responseData = await response.json();
+    return responseData;
+    } catch (error) {
+      console.error(error);
+    }
 }
 
 /* Anfrage an Planet API um Status der Order zu aktualisieren */
-async function refreshStatus(uuid) {
+async function refreshStatus(uuid) {                            //TODO: refresh on load
   console.log("refreshing orderstatus of " + uuid);
+  var order = await getOrderStatus(uuid);
+  console.log(order);
+  var state = order.state;
+  if (state === "running" || state === "queued") {
+    console.log("still running");
+    mapTilesIDs[pickedTile][2] = "ordered";
+    pickTile(pickedTile);
+  } else {
+    if (state === "success") {
+      mapTilesIDs[pickedTile][2] = "downloadable";
+      updateOrderStatusDB(uuid, "downloadable");
+      pickTile(pickedTile);
+    } else {
+      console.log("error");
+    }
+  }
 }
 
 /* Download MapTile */
@@ -946,12 +1123,19 @@ function linkTileButtons() {
 }
 /* Wählt MapTile aus
 speichert gewählte MapTile, zeigt Infos an, Zeigt Footprint als Polygon auf Map an */
-function pickTile() {
+function pickTile(id) {
   clearMap();
 
-  //console.log(this.id);
-  var pickedTileButton = parseInt(this.id.slice(-1), 10);
-  console.log(pickedTileButton);
+  var pickedTileButton = -1;
+  if (this !== undefined) {
+    pickedTileButton = parseInt(this.id.slice(-1), 10);
+    pickedTile = pickedTileButton + (10 * pageTiles) - 10;
+  } else {
+    pickedTile = id;
+    pickedTileButton = pickedTile - (10 * pageTiles) + 10;
+  }
+  //console.log(pickedTileButton);
+  //console.log(pickedTile);
   for (var i = 0; i < tilesList.length; i++) {
     if (i == pickedTileButton || tilesList[i].innerHTML == "__") {
       tilesList[i].disabled = true;
@@ -959,7 +1143,7 @@ function pickTile() {
       tilesList[i].disabled = false;
     }
   }
-  pickedTile = pickedTileButton + (10 * pageTiles) - 10;
+
   //console.log(pickedTile);
   //console.log(mapTilesIDs);
   var polygon = [];
@@ -978,8 +1162,8 @@ function pickTile() {
           buttonDownload.innerHTML = "Order";
         } else {
           if (status === "ordered") {
-            buttonDownload.innerHTML = "Bestellung wird bearbeitet";
-            buttonDownload.disabled = true;
+            buttonDownload.innerHTML = "Bestellung wird bearbeitet (aktualisieren)";
+            //buttonDownload.disabled = true;
           } else {
             buttonDownload.innerHTML = "error";
             buttonDownload.disabled = true;
@@ -1000,7 +1184,7 @@ function pickTile() {
   console.log(mapTilesIDs[pickedTile][4]);
   mapTileInfo.innerHTML = mapTilesText;
   //copernicusMapTiles("dc52e819-40ba-4a7b-988c-e003adcd560a");
-  polygonOnMap = new L.polygon([polygon]).addTo(map);
+  polygonOnMap = new L.polygon([latLongSwitch(polygon)], {fillOpacity: 0}).addTo(map);
   polygonDrawn = true;
 }
 
@@ -1039,6 +1223,7 @@ function updateText2() {
 
 /* Zeigt Map Tiles an */
 function showMapTile(uuid) {
+  //clearMap();
   console.log("showing maptile");
   if (imageOverlayed === true) {
     map.removeLayer(imageOverlay);
@@ -1047,6 +1232,7 @@ function showMapTile(uuid) {
   errorOverlayUrl = 'https://cdn-icons-png.flaticon.com/512/110/110686.png';
   altText = "test";
   latLngBounds = L.latLngBounds(mapTilesIDs[pickedTile][4]);
+  //console.log(latLngBounds);
   imageOverlay = L.imageOverlay(imageUrl, latLngBounds, {
       opacity: 1,
       errorOverlayUrl: errorOverlayUrl,
