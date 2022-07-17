@@ -2,7 +2,6 @@
 const express = require('express')
 //const base64 = require("base-64")
 require('dotenv').config({ debug: true })
-console.log(process.env)
 var base64 = require('base-64');
 const fetch =  require("node-fetch");
 const { promises: { readdir } } = require('fs')
@@ -136,9 +135,25 @@ const getLocation = async (name) => {
 //#######   mapTiles   ####################
 //#########################################
 
+app.get("/downloading/", (req, res) => {
+  var downloading = [downloadingCopernicus, downloadingPlanet]
+  res.send(downloading);
+})
+
+var currentMapTile = "";
 //#########################################
 //#######   copernicus   ##################
 //#########################################
+var downloadingCopernicus = [];
+
+function finishCopernicusDownload(uuid) {
+  console.log(uuid);
+  //convertFilesPlanet(id);
+  var index = downloadingCopernicus.indexOf(uuid);
+  if (index !== -1) {
+    downloadingCopernicus.splice(index, 1);
+  }
+}
 
 app.get("/copernicusSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {
   //console.log(req.params);
@@ -179,9 +194,9 @@ app.get("/copernicusMaptiles/:uuid", (req, res) => {
   //console.log(req.params);
   var uuid = req.params.uuid;
   var temp = getCopernicusMapTiles(req.params.uuid)
-  .then(uuid => {
+  .then(temp => {
     //console.log(name);
-    res.send(uuid);
+    res.send(temp);
   })
   .catch(error => console.error(error))
 })
@@ -189,6 +204,7 @@ app.get("/copernicusMaptiles/:uuid", (req, res) => {
 const getCopernicusMapTiles = async (uuid) => {
   var url = "https://" + copernicusUser + ":" + copernicusPass + "@scihub.copernicus.eu/dhus/odata/v1/Products(\'" + uuid + "\')/$value";
   //console.log(url);
+  downloadingCopernicus.push(uuid);
   const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".SAFE.zip");
   const request = await https.get(url, function(response) {
     response.pipe(file);
@@ -196,7 +212,8 @@ const getCopernicusMapTiles = async (uuid) => {
       console.log("f");
       file.close();
       moveFiles(uuid);
-      return uuid;
+      finishCopernicusDownload(uuid);
+      return response;
     })
   }).on("error", function() {
     console.log("err");
@@ -298,6 +315,29 @@ async function convertFiles(uuid) {
 //#########################################
 //#######   Planet   ######################
 //#########################################
+var downloadingPlanet = [];
+
+function finishPlanetDownload(id) {
+  //currentMapTile = id;
+  console.log("id:");
+  console.log(currentMapTile);
+  db.collection("mapTiles").findOneAndUpdate(
+    {mapTileID: currentMapTile},
+    {$set: {
+      status: "downloaded"
+      }
+    },
+    {
+      upsert: false
+    }
+  )
+  fs.rename(__dirname + "/public/mapTiles/" + currentMapTile + ".tif", __dirname + "/public/mapTiles/" + currentMapTile + ".tiff", convertFilesPlanet)//use fs.renameSync(oldPath, newPath)
+  var index = downloadingPlanet.indexOf(currentMapTile);
+  if (index !== -1) {
+    downloadingPlanet.splice(index, 1);
+  }
+}
+//finishPlanetDownload("5692575_3761710_2022-06-07_2403");
 
 app.get("/planetSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {
   //console.log(req.params);
@@ -376,21 +416,22 @@ app.get("/planetMaptiles/:uuid", (req, res) => {
   //console.log(req.params);
   var uuid = req.params.uuid;
   var temp = orderPlanetMapTiles(req.params.uuid)
-  .then(uuid => {
+  .then(temp => {
     //console.log(name);
-    res.send(uuid);
+    res.send(temp);
   })
   .catch(error => console.error(error))
 })
 
 const orderPlanetMapTiles = async (uuid) => {
   var url =  "https://" + planetApiKey + ": @api.planet.com/compute/ops/orders/v2";
+  var order = "order:" + uuid;
   var body = {
-    "name": "order:5689895_3761710_2022-06-06_2416",
+    "name": order,
     "products": [
         {
             "item_ids":[
-                "5689895_3761710_2022-06-06_2416"
+                uuid
             ],
             "item_type":"PSOrthoTile",
             "product_bundle":"visual"
@@ -399,7 +440,7 @@ const orderPlanetMapTiles = async (uuid) => {
     "delivery":{
 
     }
-}
+  }
    try {
   //console.log(url);
   const response = await fetch(url, {
@@ -413,12 +454,24 @@ const orderPlanetMapTiles = async (uuid) => {
     });
   const responseData = await response.text();
   console.log(responseData);
+  db.collection("mapTiles").insertOne({mapTileID: uuid, status: "ordered"})
   return responseData;
   } catch (error) {
     console.error(error);
   }
 }
 //orderPlanetMapTiles("5692447_3761710_2022-06-07_227a");
+
+app.get("/planetOrders/", (req, res) => {
+  //console.log(req.params);
+  //var uuid = req.params.uuid;
+  var orders = getPlanetOrders()
+  .then(orders => {
+    //console.log(name);
+    res.send(orders);
+  })
+  .catch(error => console.error(error))
+})
 
 const getPlanetOrders = async (uuid) => {
   var orders = [];
@@ -447,6 +500,17 @@ const getPlanetOrders = async (uuid) => {
 }
 //getPlanetOrders();
 
+app.get("/planetOrder/:id", (req, res) => {
+  //console.log(req.params);
+  //var uuid = req.params.uuid;
+  var order = getOnePlanetOrder(req.params.id)
+  .then(order => {
+    //console.log(order);
+    res.send(order);
+  })
+  .catch(error => console.error(error))
+})
+
 const getOnePlanetOrder = async (uuid) => {
   var orders = await getPlanetOrders(uuid);
   //console.log(orders);
@@ -456,30 +520,45 @@ const getOnePlanetOrder = async (uuid) => {
       id = orders[i][1];
     }
   }
-  console.log(id);
-  var url = "https://api.planet.com/compute/ops/orders/v2/" + id;
-   try {
-  //console.log(url);
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'same-origin',
-    headers: {
-    'Content-Type': 'application/json',
-    "Authorization": "Basic " + base64.encode(planetApiKey + ":")
+  //console.log(id);
+  if (id !== "") {
+    var url = "https://api.planet.com/compute/ops/orders/v2/" + id;
+     try {
+    //console.log(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+      'Content-Type': 'application/json',
+      "Authorization": "Basic " + base64.encode(planetApiKey + ":")
+      }
+      });
+    const responseData = await response.json();
+    //console.log(responseData);
+    //console.log(responseData.state);
+    return responseData;
+    } catch (error) {
+      console.error(error);
     }
-    });
-  const responseData = await response.json();
-  console.log(responseData);
-  return responseData;
-  } catch (error) {
-    console.error(error);
   }
 }
+
+app.get("/planetDownload/:id", (req, res) => {
+  //console.log(req.params);
+  //var uuid = req.params.uuid;
+  var order = downloadPlanetOrders(req.params.id)
+  .then(order => {
+    console.log(order);
+    res.send(order);
+  })
+  .catch(error => console.error(error))
+})
 
 const downloadPlanetOrders = async (uuid) => {
   var order = await getOnePlanetOrder(uuid);
   console.log(order);
-  var token = "";
+  currentMapTile = uuid;
+  var token = "error";
   for (var i = 0; i < order._links.results.length; i++) {
     if (order._links.results[i].name.includes("tif")) {
       token = order._links.results[i].location;
@@ -487,14 +566,15 @@ const downloadPlanetOrders = async (uuid) => {
   }
   var url = token;
   console.log(url);
-  var filename = "./public/mapTiles/" + uuid /**+ ".tif"*/;
+  var filename = "./public/mapTiles/" + uuid /*+ ".tif"*/;
   //const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".tif");
   //const request = https.get(url, function(response) {
     //console.log(response.socket._httpMessage);
     //console.log(response._httpMessage);
   //})
-  downloader(url, filename, callbackTest);
-  /**
+  downloadingPlanet.push(uuid);
+  downloader(url, filename, finishPlanetDownload);
+  /*
   const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".tif");
   const request = https.get(url, function(response) {
    response.pipe(file);
@@ -540,16 +620,18 @@ function downloader(url, filenameT, callback) {
             console.log(error);
         })
         .then(function (filename) {
-            callback(filename);
+            callback(filenameT);
         })
 }
 
-function convertFilesPlanet(id) {
-  //fs.rename(__dirname + "/public/mapTiles/" + id + ".tif", __dirname + "/public/mapTiles/" + id + ".tiff", callbackTest)
-  sharp(__dirname + "/public/mapTiles/" + id + ".tiff")
-  .toFile(__dirname + "/public/mapTiles/" + id + ".png");
+function convertFilesPlanet() {
+  console.log("test");
+  id = currentMapTile;
+    sharp(__dirname + "/public/mapTiles/" + id + ".tiff")
+    .trim(1)
+    .toFile(__dirname + "/public/mapTiles/" + id + ".png");
 }
-//convertFilesPlanet("5689895_3761710_2022-06-06_2416");
+//convertFilesPlanet();
 //#########################################
 //#########################################
 //#########################################
@@ -635,6 +717,24 @@ app.get("/maptilesDB/", (req, res) => {
 app.post("/maptilesDB/", (req, res) => {
   console.log(req.body);
   db.collection("mapTiles").insertOne(req.body)
+  .then(results => {
+    res.send(results);
+  })
+  .catch(error => console.error(error))
+})
+
+app.put("/maptilesDB/", (req, res) => {
+  console.log(req.body);
+  db.collection("mapTiles").findOneAndUpdate(
+    {mapTileID: req.body.mapTileID},
+    {$set: {
+      status: req.body.status
+      }
+    },
+    {
+      upsert: false
+    }
+  )
   .then(results => {
     res.send(results);
   })
