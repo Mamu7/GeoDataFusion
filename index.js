@@ -1,6 +1,4 @@
-//process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const express = require('express')
-//const base64 = require("base-64")
 require('dotenv').config({ debug: true })
 var base64 = require('base-64');
 const fetch =  require("node-fetch");
@@ -8,48 +6,50 @@ const { promises: { readdir } } = require('fs')
 var path = require("path");
 var fs = require('fs')
 var https = require('https')
+const Swal = require('sweetalert2')
 const axios = require('axios').default;
 const rwClient = require("./twitterClient.js");
 var convert = require('xml-js');
 const sharp = require('sharp');
+var gm = require('gm').subClass({imageMagick: true});
 const StreamZip = require('node-stream-zip');
 const MongoClient = require('mongodb').MongoClient
-
 const NodeGeocoder = require('node-geocoder');
 
-const options = {
-  provider: 'locationiq',
+function isJsonString(str) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
 
-  // Optional depending on the providers
-  //fetch: customFetchImplementation,
-  apiKey: process.env.LOCATIONIQAPIKEY, // for Mapquest, OpenCage, Google Premier
-  formatter: null // 'gpx', 'string', ...
+const options = {           //Setzt Parameter für locationiq API
+  provider: 'locationiq',
+  apiKey: process.env.LOCATIONIQAPIKEY,
+  formatter: null
 };
 const geocoder = NodeGeocoder(options);
 
 var SHA256 = require("crypto-js/sha256");
-
-
-
 const app = express()
-
 const bodyParser = require('body-parser')
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
 
-const copernicusUser = process.env.COPERNICUSUSERNAME;                    // Username &
+const copernicusUser = process.env.COPERNICUSUSERNAME;     // Username &
 const copernicusPass = process.env.COPERNICUSPASSWORD;     // Passwort für copernicus API
-const planetApiKey = process.env.PLANETAPIKEY; // Api Key für Planet
+const planetApiKey = process.env.PLANETAPIKEY;             // Api Key für Planet
 
-app.use('/js', express.static(__dirname + '/public/js'))
+app.use('/js', express.static(__dirname + '/public/js'))              //setzt Routen für Dateien
 app.use('/css', express.static(__dirname + '/public/css'))
 app.use("/mapTiles", express.static(__dirname + "/public/mapTiles"))
 
 //Database Connection
 const url = 'mongodb://localhost:27017/tweet'
-
 const dbName = "DataFusion"
 let db
 MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
@@ -70,55 +70,42 @@ MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
 //#######   Twitter   #####################
 //#########################################
 
-//Tweets in AOI
+//Abfrage Tweets in AOI
 app.get("/tweets/:lat/:long/:r", (req, res) => {
-  //console.log(req.params);
   var tweets = tweet(req.params.lat, req.params.long, req.params.r)
   .then(tweets => {
-    //console.log(tweets);
     res.send(tweets);
   })
   .catch(error => console.error(error))
 })
-
+//Abfrage Tweets in AOI
 const tweet = async (lat, long, r) => {
   var url = "search/tweets.json?q=&geocode=" + lat + "," + long + "," + r + "km";
-  //console.log(url);
   const tweets = await rwClient.v1.get(url);
   return tweets;
-  //console.log(tweets);
 }
-//tweet();
 
-//Tweet by ID
+//Abfrage Tweet by ID
 app.get("/tweets/:id", (req, res) => {
-  //console.log(req.params);
   var tweets = tweetSingle(req.params.id)
   .then(tweets => {
-    //console.log(tweets);
     res.send(tweets);
   })
-  .catch(error => console.error(error))
+  .catch(error => res.send(false)/*console.error(error)*/)
 })
-
+//Abfrage Tweet by ID
 const tweetSingle = async (id) => {
   var url = "statuses/show.json?id=" + id;
-  //console.log(url);
   const tweets = await rwClient.v1.get(url);
-  //console.log(tweets);
   return tweets;
-  //console.log(tweets);
 }
-//tweet();
 
 //#########################################
 //#######   Geocoding   ###################
 //#########################################
-app.get("/geocoding/:name", (req, res) => {
-  //console.log(req.params);
+app.get("/geocoding/:name", (req, res) => { //Abfrage LocationIQ API
   var name = getLocation(req.params.name)
   .then(name => {
-    //console.log(name);
     res.send(name);
   })
   .catch(error => console.error(error))
@@ -126,37 +113,46 @@ app.get("/geocoding/:name", (req, res) => {
 
 const getLocation = async (name) => {
   const res = await geocoder.geocode(name);
-  console.log(res);
   return res;
 }
-//getLocation("w");
 
-//#########################################
-//#######   mapTiles   ####################
-//#########################################
+//##############################################
+//#######   mapTiles   #########################
+//##############################################
 
-app.get("/downloading/", (req, res) => {
-  var downloading = [downloadingCopernicus, downloadingPlanet]
+app.get("/downloading/", (req, res) => {      //Server Endpoint --> Client kann Zustand des Downloads abfragen
+  var downloading = [downloadingCopernicus, downloadingPlanet];
   res.send(downloading);
 })
 
-var currentMapTile = "";
+var currentMapTile = ""; //speichert aktuell beahandelten MapTile
 //#########################################
 //#######   copernicus   ##################
 //#########################################
 var downloadingCopernicus = [];
 
-function finishCopernicusDownload(uuid) {
-  console.log(uuid);
-  //convertFilesPlanet(id);
-  var index = downloadingCopernicus.indexOf(uuid);
+async function copernicusDownloadStatus(uuid, status) {     //aktualisiert den Download status
+  for (var i = 0; i < downloadingCopernicus.length; i++) {
+    if (downloadingCopernicus[i][0] === uuid) {
+      downloadingCopernicus[i][1] = status;
+    }
+  }
+}
+
+async function finishCopernicusDownload(uuid) {     //schließt download ab : setzt Status auf downloaded, entfernt uuid aus Liste
+  db.collection("mapTiles").insertOne({mapTileID: uuid, status: "downloaded"});
+  var index = -1;
+  for (var i = 0; i < downloadingCopernicus.length; i++) {
+    if (downloadingCopernicus[i][0] === uuid) {
+      index = i;
+    }
+  }
   if (index !== -1) {
     downloadingCopernicus.splice(index, 1);
   }
 }
 
-app.get("/copernicusSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {
-  //console.log(req.params);
+app.get("/copernicusSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {  //Abfrage Copernicus API
   var products = findProductsCopernicus(req.params.lat, req.params.long, req.params.dateA, req.params.dateB, req.params.maxCloudCover)
   .then(products => {
     res.send(products);
@@ -164,7 +160,7 @@ app.get("/copernicusSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) 
   .catch(error => console.error(error))
 })
 
-const findProductsCopernicus = async (lat, long, dateA, dateB, maxCloudCover) => {
+const findProductsCopernicus = async (lat, long, dateA, dateB, maxCloudCover) => {    //Abfrage Copernicus API
   var start = 0;
   var rows = 100;
   var copernicusSearchURLRoot = "https://" + copernicusUser + ":" + copernicusPass + "@scihub.copernicus.eu/dhus/search?start=" + start + "&rows=" + rows + "&q=";
@@ -173,10 +169,8 @@ const findProductsCopernicus = async (lat, long, dateA, dateB, maxCloudCover) =>
   var endposition = "[" + dateA + " TO " + dateB + "]";
   var cloudcoverpercentage = "[0 TO " + maxCloudCover + "]";
   var platformname = "Sentinel-2"
-  //console.log(footprint);
   try {
     var url = copernicusSearchURLRoot + "platformname:" + platformname + " AND footprint:" + footprint + " AND endposition:" + endposition + " AND cloudcoverpercentage:" + cloudcoverpercentage;
-    //console.log(url);
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'same-origin'
@@ -188,30 +182,41 @@ const findProductsCopernicus = async (lat, long, dateA, dateB, maxCloudCover) =>
       console.error(error);
     }
 }
-//findProductsCopernicus(41.90, 12.50);
 
-app.get("/copernicusMaptiles/:uuid", (req, res) => {
-  //console.log(req.params);
+app.get("/copernicusMaptiles/:uuid", (req, res) => {  //Abfrage Copernicus API MapTile Download
   var uuid = req.params.uuid;
   var temp = getCopernicusMapTiles(req.params.uuid)
   .then(temp => {
-    //console.log(name);
     res.send(temp);
   })
   .catch(error => console.error(error))
 })
 
-const getCopernicusMapTiles = async (uuid) => {
+const getCopernicusMapTiles = async (uuid) => {   //Copernicus API MapTile Download
   var url = "https://" + copernicusUser + ":" + copernicusPass + "@scihub.copernicus.eu/dhus/odata/v1/Products(\'" + uuid + "\')/$value";
-  //console.log(url);
-  downloadingCopernicus.push(uuid);
+  downloadingCopernicus.push([uuid, "downloading"]);
   const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".SAFE.zip");
   const request = await https.get(url, function(response) {
     response.pipe(file);
     file.on("finish", function() {
-      console.log("f");
       file.close();
       moveFiles(uuid);
+      return response;
+    })
+  }).on("error", function() {
+    console.log("err");
+    return("error");
+  });
+}
+
+const getCopernicusMapTilesQuicklook = async (uuid) => {  //Abfrage Copernicus API MapTile Vorschau Download
+  var urlQL = "https://" + copernicusUser + ":" + copernicusPass + "@scihub.copernicus.eu/dhus/odata/v1/Products(\'" + uuid + "\')/Products(\'Quicklook\')/$value";
+  downloadingCopernicus.push([uuid, "downloading"]);
+  const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".png");
+  const request = await https.get(urlQL, function(response) {
+    response.pipe(file);
+    file.on("finish", function() {
+      file.close();
       finishCopernicusDownload(uuid);
       return response;
     })
@@ -221,23 +226,21 @@ const getCopernicusMapTiles = async (uuid) => {
   });
 
 }
-//getCopernicusMapTiles("7e2fc6db-037c-4219-a70c-4d5d9a6064bf");
-//getCopernicusMapTiles("51367ce5-d022-4a23-91cc-e5d425385d79");
-const getDirectories = async source =>
+
+const getDirectories = async source =>             //listet Ordner
 (await readdir(source, { withFileTypes: true }))
   .filter(dirent => dirent.isDirectory())
   .map(dirent => dirent.name)
 
-function callbackTest() {}
+function callbackTest() {} // Hilfsfunktion, da fs.unlink einen callback braucht
 
-async function fileExists(uuid, isZip) {
+async function fileExists(uuid, isZip) {  //überprüft ob datei als ZIP oder so existiert
   var pathname = "";
   if (isZip == true) {
     pathname = __dirname + "/public/mapTiles/" + uuid + ".SAFE.zip";
   } else {
     pathname = __dirname + "/public/mapTiles/" + uuid;
   }
-  console.log(pathname);
   var exists = false;
   try {
     if (fs.existsSync(pathname)) {
@@ -249,78 +252,113 @@ async function fileExists(uuid, isZip) {
   return exists;
 }
 
-
-
-async function moveFiles(uuid) {
+async function moveFiles(uuid) {    //entpackt ZIP, bewegt relevante Dateien, konvertiert von JP2 zu PNG
+  copernicusDownloadStatus(uuid, "unzipping");
   var uuidZip = await fileExists(uuid, true);
   var uuidUnZip = await fileExists(uuid, false);
-
-  //console.log(uuidZip);
-  //console.log(uuidUnZip);
   if (uuidZip == true && uuidUnZip == false) {
     const zip = new StreamZip.async({ file: __dirname + "/public/mapTiles/" + uuid + ".SAFE.zip" });
-
     zip.on('error', function (err) { console.error('[ERROR]', err); });
     zip.on('ready', function () {
-      console.log('All entries read: ' + zip.entriesCount);
-      //console.log(zip.entries());
     });
     fs.mkdirSync("./public/mapTiles/" + uuid);
     const count = await zip.extract(null, './public/mapTiles/' + uuid);
-    console.log(`Extracted ${count} entries`);
+
     await zip.close();
     fs.unlink(__dirname + "/public/mapTiles/" + uuid + ".SAFE.zip", callbackTest);
   }
-
+  copernicusDownloadStatus(uuid, "converting0");
   var directs = await getDirectories(__dirname + "/public/mapTiles/" + uuid);
   var directs2 = await getDirectories(__dirname + "/public/mapTiles/" + uuid + "/" + directs[0] + "/GRANULE/");
-  var directs3 = __dirname + "/public/mapTiles/" + uuid + "/" + directs[0] + "/GRANULE/" + directs2[0] + "/IMG_DATA/R10m";
+  var directs3 = __dirname + "\\public\\mapTiles\\" + uuid + "\\" + directs[0] + "\\GRANULE\\" + directs2[0] + "\\IMG_DATA";
+  if (fs.existsSync(directs3 + "/R10m")) {
+    directs3 = directs3 + "\\R10m";
+  }
   var tileFiles = [];
 
   fs.readdirSync(directs3).forEach(file => {
-    if (file.includes("B02") || file.includes("B03") || file.includes("B04") || file.includes("B08")) {
+    if (file.includes("B02") || file.includes("B03") || file.includes("B04")/* || file.includes("B08")*/) {
       tileFiles.push(file);
     }
   });
+
+  var conversionsDone = 0;
   if (tileFiles.length > 0) {
     for (var i = 0; i < tileFiles.length; i++) {
-      fs.rename(directs3 + "/" + tileFiles[i], __dirname + "/public/mapTiles/" + uuid + "/" + tileFiles[i], callbackTest);
+      var channel = "";
+      if (tileFiles[i].includes("B02")) {
+        channel = "B02"
+      } else if (tileFiles[i].includes("B03")) {
+        channel = "B03";
+      } else if (tileFiles[i].includes("B04")) {
+        channel = "B04";
+      } else if (tileFiles[i].includes("B08")) {
+        channel = "B08";
+      }
+      var filenameJP2 = directs3 + "\\" + tileFiles[i];
+      var filenamePNG = __dirname + "\\public\\mapTiles\\" + uuid + "\\" + uuid + "_" + channel + ".png";
+      gm(filenameJP2).write(filenamePNG, function(err, value) {
+        if(err) {
+          console.log(err);
+          console.log("Error: File Conversion Failed @ moveFiles()");
+        }
+        if (!err) {
+          conversionsDone++;
+          copernicusDownloadStatus(uuid, "converting" + conversionsDone)
+          if (conversionsDone >= tileFiles.length) {
+            combineFiles(uuid);
+          }
+        }
+      });
     }
   } else {
-    console.log("error");
+    console.log("Error: Files do not exist @ moveFiles()");
   }
-  //console.log(tileFiles);
   return uuid;
 }
-//moveFiles("51367ce5-d022-4a23-91cc-e5d425385d79");
 
-async function convertFiles(uuid) {
+async function combineFiles(uuid) {   //verbindet Kanäle zu Farbbild, erhöht Helligkeit, Normalisiert Pixeldaten
+  copernicusDownloadStatus(uuid, "merging");
   var tileFiles = [];
 
-  fs.readdirSync(__dirname + "/public/mapTiles").forEach(file => {
+  fs.readdirSync(__dirname + "/public/mapTiles/" + uuid).forEach(file => {
     if (file.includes(uuid + "_B02") || file.includes(uuid + "_B03") || file.includes(uuid + "_B04") || file.includes(uuid + "_B08")) {
       tileFiles.push(file);
     }
   });
-  console.log(tileFiles);
-  var redChannel = __dirname + "/public/mapTiles/" + tileFiles[2];
-  var greenChannel = __dirname + "/public/mapTiles/" + tileFiles[1];
-  var blueChannel = __dirname + "/public/mapTiles/" + tileFiles[0];
-  console.log(redChannel);
-  const test = await sharp(__dirname + "/public/mapTiles/test.jp2")//.joinChannel([greenChannel, blueChannel])
-  .png()
-  .toFile("test.png");
+
+  if (tileFiles.length >= 3) {
+    var redChannel = __dirname + "/public/mapTiles/" + uuid + "/" + tileFiles[2];
+    var greenChannel = __dirname + "/public/mapTiles/" + uuid + "/" + tileFiles[1];
+    var blueChannel = __dirname + "/public/mapTiles/" + uuid + "/" + tileFiles[0];
+
+    const redChannelGray = await sharp(redChannel).toColorspace("b-w").toBuffer();
+    const greenChannelGray = await sharp(greenChannel).toColorspace("b-w").toBuffer();
+    const blueChannelGray = await sharp(blueChannel).toColorspace("b-w").toBuffer();
+
+    const test = await sharp(redChannelGray)
+    .joinChannel([greenChannelGray, blueChannelGray])
+    .trim(1)
+    .modulate({
+      brightness: 2,
+      lightness: 75,
+      saturation: 7.5
+    })
+    .normalize()
+    .toFile(__dirname + "/public/mapTiles/" + uuid + ".png");
+
+    finishCopernicusDownload(uuid);
+  } else {
+    console.log("Error: Files do not exist @ combineFiles()");
+  }
 }
-//convertFiles("51367ce5-d022-4a23-91cc-e5d425385d79");
+
 //#########################################
 //#######   Planet   ######################
 //#########################################
 var downloadingPlanet = [];
 
-function finishPlanetDownload(id) {
-  //currentMapTile = id;
-  console.log("id:");
-  console.log(currentMapTile);
+function finishPlanetDownload() { //schließt download ab : setzt Status auf downloaded, entfernt uuid aus Liste
   db.collection("mapTiles").findOneAndUpdate(
     {mapTileID: currentMapTile},
     {$set: {
@@ -331,16 +369,19 @@ function finishPlanetDownload(id) {
       upsert: false
     }
   )
-  fs.rename(__dirname + "/public/mapTiles/" + currentMapTile + ".tif", __dirname + "/public/mapTiles/" + currentMapTile + ".tiff", convertFilesPlanet)//use fs.renameSync(oldPath, newPath)
-  var index = downloadingPlanet.indexOf(currentMapTile);
+
+  var index = -1;
+  for (var i = 0; i < downloadingPlanet.length; i++) {
+    if (downloadingPlanet[i][0] === currentMapTile) {
+      index = i;
+    }
+  }
   if (index !== -1) {
     downloadingPlanet.splice(index, 1);
   }
 }
-//finishPlanetDownload("5692575_3761710_2022-06-07_2403");
 
-app.get("/planetSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {
-  //console.log(req.params);
+app.get("/planetSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {    //Abfrage Planet API
   var products = findProductsPlanet(req.params.lat, req.params.long, req.params.dateA, req.params.dateB, req.params.maxCloudCover)
   .then(products => {
     res.send(products);
@@ -348,12 +389,10 @@ app.get("/planetSearch/:lat/:long/:dateA/:dateB/:maxCloudCover", (req, res) => {
   .catch(error => console.error(error))
 })
 
-const findProductsPlanet = async (lat, long, dateA, dateB, maxCloudCover) => {
+const findProductsPlanet = async (lat, long, dateA, dateB, maxCloudCover) => {//Abfrage Planet API
   var sort = "acquired asc";
   var page_size = 250;
-  //https://api.planet.com/data/v1/quick-search?_sort=acquired asc&_page_size=50
   var planetSearchURLRoot = "https://" + planetApiKey + ": @api.planet.com/data/v1/quick-search?_sort=" + sort + "&_page_size=" + page_size;
-  //console.log(planetSearchURLRoot);
   var body = {
     "item_types": ["PSOrthoTile"],
     "filter":{
@@ -393,7 +432,6 @@ const findProductsPlanet = async (lat, long, dateA, dateB, maxCloudCover) => {
     };
     try {
     var url = planetSearchURLRoot;
-    //console.log(url);
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -402,28 +440,31 @@ const findProductsPlanet = async (lat, long, dateA, dateB, maxCloudCover) => {
       },
       body: JSON.stringify(body)
       });
-    const responseData = await response.json();
-    //console.log(responseData);
+      var responseData;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      responseData = await response.json();
+    } else {
+      var errorM = { features: "error" };
+      responseData = JSON.parse(error);
+    }
     return responseData;
     } catch (error) {
       console.error(error);
     }
 }
-//findProductsPlanet(41.90, 12.50);
 
 
-app.get("/planetMaptiles/:uuid", (req, res) => {
-  //console.log(req.params);
+app.get("/planetMaptiles/:uuid", (req, res) => { //Abfrage Planet API nach ID zur Bestellung
   var uuid = req.params.uuid;
   var temp = orderPlanetMapTiles(req.params.uuid)
   .then(temp => {
-    //console.log(name);
     res.send(temp);
   })
   .catch(error => console.error(error))
 })
 
-const orderPlanetMapTiles = async (uuid) => {
+const orderPlanetMapTiles = async (uuid) => { ////Abfrage Planet API nach ID zur Bestellung
   var url =  "https://" + planetApiKey + ": @api.planet.com/compute/ops/orders/v2";
   var order = "order:" + uuid;
   var body = {
@@ -442,7 +483,6 @@ const orderPlanetMapTiles = async (uuid) => {
     }
   }
    try {
-  //console.log(url);
   const response = await fetch(url, {
     method: 'POST',
     credentials: 'same-origin',
@@ -453,31 +493,25 @@ const orderPlanetMapTiles = async (uuid) => {
     body: JSON.stringify(body)
     });
   const responseData = await response.text();
-  console.log(responseData);
   db.collection("mapTiles").insertOne({mapTileID: uuid, status: "ordered"})
   return responseData;
   } catch (error) {
     console.error(error);
   }
 }
-//orderPlanetMapTiles("5692447_3761710_2022-06-07_227a");
 
-app.get("/planetOrders/", (req, res) => {
-  //console.log(req.params);
-  //var uuid = req.params.uuid;
+app.get("/planetOrders/", (req, res) => { //Abfrage Planet API Bestellungen
   var orders = getPlanetOrders()
   .then(orders => {
-    //console.log(name);
     res.send(orders);
   })
   .catch(error => console.error(error))
 })
 
-const getPlanetOrders = async (uuid) => {
+const getPlanetOrders = async (uuid) => { //Abfrage Planet API Bestellungen
   var orders = [];
   var url = "https://api.planet.com/compute/ops/orders/v2";
    try {
-  //console.log(url);
   const response = await fetch(url, {
     method: 'GET',
     credentials: 'same-origin',
@@ -492,39 +526,31 @@ const getPlanetOrders = async (uuid) => {
       orders.push([responseData.orders[i].name, responseData.orders[i].id])
     }
   }
-  //console.log(responseData);
   return orders;
   } catch (error) {
     console.error(error);
   }
 }
-//getPlanetOrders();
 
-app.get("/planetOrder/:id", (req, res) => {
-  //console.log(req.params);
-  //var uuid = req.params.uuid;
+app.get("/planetOrder/:id", (req, res) => { //Abfrage Planet API Bestellung nach ID zur Aktualisierung
   var order = getOnePlanetOrder(req.params.id)
   .then(order => {
-    //console.log(order);
     res.send(order);
   })
   .catch(error => console.error(error))
 })
 
-const getOnePlanetOrder = async (uuid) => {
+const getOnePlanetOrder = async (uuid) => {//Abfrage Planet API Bestellung nach ID zur Aktualisierung
   var orders = await getPlanetOrders(uuid);
-  //console.log(orders);
   var id = "";
   for (var i = 0; i < orders.length; i++) {
-    if (orders[i][0].includes(uuid)) {
+    if (orders[i][0].includes(uuid) && id === "") {
       id = orders[i][1];
     }
   }
-  //console.log(id);
   if (id !== "") {
     var url = "https://api.planet.com/compute/ops/orders/v2/" + id;
      try {
-    //console.log(url);
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'same-origin',
@@ -533,30 +559,32 @@ const getOnePlanetOrder = async (uuid) => {
       "Authorization": "Basic " + base64.encode(planetApiKey + ":")
       }
       });
-    const responseData = await response.json();
-    //console.log(responseData);
-    //console.log(responseData.state);
-    return responseData;
+    const responseData = await response.text();
+    var responseDataJSON;
+    if (isJsonString(responseData)) {
+      responseDataJSON = responseData;
+    } else {
+      responseDataObject = { message: responseData };
+      responseDataJSON = JSON.stringify(responseDataObject);
+    }
+    return responseDataJSON;
     } catch (error) {
       console.error(error);
     }
   }
 }
 
-app.get("/planetDownload/:id", (req, res) => {
-  //console.log(req.params);
-  //var uuid = req.params.uuid;
+app.get("/planetDownload/:id", (req, res) => {    //Abfrage Download Planet
   var order = downloadPlanetOrders(req.params.id)
   .then(order => {
-    console.log(order);
     res.send(order);
   })
   .catch(error => console.error(error))
 })
 
-const downloadPlanetOrders = async (uuid) => {
-  var order = await getOnePlanetOrder(uuid);
-  console.log(order);
+const downloadPlanetOrders = async (uuid) => {    //Abfrage Download Planet
+  var orderString = await getOnePlanetOrder(uuid);
+  var order = JSON.parse(orderString);
   currentMapTile = uuid;
   var token = "error";
   for (var i = 0; i < order._links.results.length; i++) {
@@ -565,32 +593,13 @@ const downloadPlanetOrders = async (uuid) => {
     }
   }
   var url = token;
-  console.log(url);
-  var filename = "./public/mapTiles/" + uuid /*+ ".tif"*/;
-  //const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".tif");
-  //const request = https.get(url, function(response) {
-    //console.log(response.socket._httpMessage);
-    //console.log(response._httpMessage);
-  //})
-  downloadingPlanet.push(uuid);
-  downloader(url, filename, finishPlanetDownload);
-  /*
-  const file = fs.createWriteStream("./public/mapTiles/" + uuid + ".tif");
-  const request = https.get(url, function(response) {
-   response.pipe(file);
-   console.log(response);
-   // after download completed close filestream
-   file.on("finish", () => {
-       file.close();
-       console.log("Download Completed");
-   });
-});*/
+  var filename = "./public/mapTiles/" + uuid;
 
+  downloadingPlanet.push([uuid, "downloading"]);
+  downloader(url, filename, convertFilesPlanet);
 }
 
-//downloadPlanetOrders("5689895_3761710_2022-06-06_2416");
-
-function downloader(url, filenameT, callback) {
+function downloader(url, filenameT, callback) { //Download Planet
     axios({
         method: 'get',
         url: url,
@@ -620,25 +629,29 @@ function downloader(url, filenameT, callback) {
             console.log(error);
         })
         .then(function (filename) {
-            callback(filenameT);
+            callback();
         })
 }
 
-function convertFilesPlanet() {
-  console.log("test");
+function convertFilesPlanet() {   //konvertiert von TIFF nach PNG
   id = currentMapTile;
+  for (var i = 0; i < downloadingPlanet.length; i++) {
+    if (downloadingPlanet[i][0] === id) {
+      downloadingPlanet[i][1] = "converting";
+    }
+  }
+  fs.renameSync(__dirname + "/public/mapTiles/" + currentMapTile + ".tif", __dirname + "/public/mapTiles/" + currentMapTile + ".tiff");
+
     sharp(__dirname + "/public/mapTiles/" + id + ".tiff")
     .trim(1)
     .toFile(__dirname + "/public/mapTiles/" + id + ".png");
+    finishPlanetDownload();
 }
-//convertFilesPlanet();
 //#########################################
 //#########################################
 //#########################################
-
 global.TextEncoder = require("util").TextEncoder;
 global.TextDecoder = require("util").TextDecoder;
-
 
 const PORT = 3000
 
@@ -646,15 +659,14 @@ app.get('/', function (req, res) {
     res.sendFile(__dirname + '/public/html/index.html')
 })
 
-
+//Server starten
 https.createServer({
     key: fs.readFileSync('key.pem'),
     cert: fs.readFileSync('cert.pem')
 }, app)
-    .listen(3000, function () {
+    .listen(PORT, function () {
         console.log('Example app listening on port 3000! Go to https://localhost:3000/')
     })
-
 
 //#########################################
 //#######   Datenbank   ###################
@@ -673,10 +685,37 @@ app.get("/tweet/", (req, res) => {
 })
 
 app.post("/tweet/", (req, res) => {
-  //console.log(req.body);
   db.collection("tweet").insertOne(req.body)
   .then(results => {
     res.send(results);
+  })
+  .catch(error => console.error(error))
+})
+
+app.put("/tweet/", (req, res) => {
+  db.collection("tweet").findOneAndUpdate(
+    {tweetObject: req.body.tweetObject},
+    {$set: {
+      lat: req.body.lat,
+      long: req.body.long,
+      }
+    },
+    {
+      upsert: true
+    }
+  )
+  .then(results => {
+    res.send(results);
+  })
+  .catch(error => console.error(error))
+})
+
+app.delete("/tweet/", (req, res) => {
+  db.collection("tweet").deleteOne(
+    {tweetObject: req.body.tweetObject}
+  )
+  .then(results => {
+    res.send("Deleted");
   })
   .catch(error => console.error(error))
 })
@@ -694,7 +733,6 @@ app.get("/locations/", (req, res) => {
 })
 
 app.post("/locations/", (req, res) => {
-  //console.log(req.body);
   db.collection("locations").insertOne(req.body)
   .then(results => {
     res.send(results);
@@ -715,7 +753,6 @@ app.get("/maptilesDB/", (req, res) => {
 })
 
 app.post("/maptilesDB/", (req, res) => {
-  console.log(req.body);
   db.collection("mapTiles").insertOne(req.body)
   .then(results => {
     res.send(results);
@@ -724,7 +761,6 @@ app.post("/maptilesDB/", (req, res) => {
 })
 
 app.put("/maptilesDB/", (req, res) => {
-  console.log(req.body);
   db.collection("mapTiles").findOneAndUpdate(
     {mapTileID: req.body.mapTileID},
     {$set: {
@@ -734,6 +770,16 @@ app.put("/maptilesDB/", (req, res) => {
     {
       upsert: false
     }
+  )
+  .then(results => {
+    res.send(results);
+  })
+  .catch(error => console.error(error))
+})
+
+app.delete("/maptilesDB/", (req, res) => {
+  db.collection("mapTiles").deleteOne(
+    { mapTileID: req.body.mapTileID }
   )
   .then(results => {
     res.send(results);
