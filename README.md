@@ -28,7 +28,8 @@
 * ImageMagick
   * Zur Konvertierung von JPEG2000
   * [Download](https://www.imagemagick.org/script/download.php)
-  * ggf. ist nach der Installation ein Neustart des PCs nötig!
+  * "convert" Funktion muss bei der Installation angekreuzt werden!
+  * Es ist nach der Installation ein Neustart des PCs nötig!
 
 ---
 
