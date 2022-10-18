@@ -2,13 +2,12 @@
 //#######   VAR   ####################################################################################################################
 //####################################################################################################################################
 
-
+//URLs
 const urlDBTweet = "https://localhost:3000/tweet/";                                   //URL Datenbankverbindung Tweets
 const urlDBLocations = "https://localhost:3000/locations/";                           //URL Datenbankverbindung Locations
 const urlDBMapTiles = "https://localhost:3000/mapTilesDB/"                            //URL Datenbankverbindung mapTiles
 const urlAPITweet = "https://localhost:3000/tweets/";                                 //URL API Anbindung Tweets
 const urlAPILocation = "https://localhost:3000/geocoding/";                           //URL API Anbindung Locations
-//const urlTwitter = "https://api.twitter.com/1.1/search/tweets.json?q=&geocode=";      //URL API Anbindung Twitter
 const urlAPICopernicusSearch = "https://localhost:3000/copernicusSearch/";            //URL API Anbindung copernicus Suche
 const urlAPICopernicusMapTiles = "https://localhost:3000/copernicusMapTiles/";        //URL API Anbindung copernicus mapTiles
 const urlAPIPlanetSearch = "https://localhost:3000/planetSearch/";                    //URL API Anbindung Planet Suche
@@ -47,52 +46,28 @@ var pStyle = {
   "color": "#ffffff",
   "fillOpacity": 0 };
 
-var map = L.map('map').setView([49.5, 32.0], 6);
+var map = L.map('map').setView([49.5, 32.0], 6);                                //setzt Parameter für Karte
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
-}).addTo(map);
-
-//var imageUrl = "https://maps.lib.utexas.edu/maps/historical/newark_nj_1922.jpg";
-//var imageUrl = "file:///C:/Uni/App/public/mapTiles/51367ce5-d022-4a23-91cc-e5d425385d79/T37UDQ_20220610T083611_B02_10m.jp2";
-var imageUrl = "https://localhost:3000/mapTiles/5689895_3761710_2022-06-06_2416.png";
-var errorOverlayUrl = 'https://cdn-icons-png.flaticon.com/512/110/110686.png';
-var altText = 'Image of Newark, N.J. in 1922. Source: The University of Texas at Austin, UT Libraries Map Collection.';
-var latLngBounds = L.latLngBounds([[40.799311, -74.118464], [40.68202047785919, -74.33]]);
-var imageOverlay = L.imageOverlay(imageUrl, latLngBounds, {
-    opacity: 1,
-    errorOverlayUrl: errorOverlayUrl,
-    alt: altText,
-    interactive: true
-})/*.addTo(map)*/;
-/*
-var baseMaps = {
-    "OpenStreetMap": osm
-};
-
-var overlayMaps = {
-  "tile": tile
-}
-
-var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);*/
+}).addTo(map);                                                                  //Fügt Hintergrund zur Karte hinzu
 
 button1.addEventListener("click", setUserRadius, false);
 map.on('click', onMapClick);
-
-var circleSiwersk = new L.circle([48.866295694987045, 38.09141727142872], {radius: 5000, color: "red"});
-map.addLayer(circleSiwersk);
 var polygonOnMap;
 var imageOverlayed = false;
-
-//----------------------------------Twitter-------------------------------------------------------------
+var imageOverlay;
+//----------------------------------Variablen-------------------------------------------------------------
 var tweetsObj;
 var tweetsDBObj;
 var tweets = [];
 var tweetsDB = [];
 var tweetsList = [];
-var prevButton = document.getElementById("prev");
-var nextButton = document.getElementById("next");
-var button2 = document.getElementById("button2");
+var prevButton = document.getElementById("prev");                 //HTML Elemente die abgerufen werden
+var nextButton = document.getElementById("next");                 //      |
+var button2 = document.getElementById("button2");                 //     \/
+var buttonSingleTweet = document.getElementById("buttonSingleTweet");
+var inputSingleTweet = document.getElementById("inputSingleTweet");
 var buttonSat = document.getElementById("buttonSat");
 var buttonLink = document.getElementById("buttonLink");
 var buttonDownload = document.getElementById("buttonDownload");
@@ -101,8 +76,7 @@ var buttonClouds = document.getElementById("buttonClouds");
 var timespanInput = document.getElementById("input2");
 var maxCloudCoverInput = document.getElementById("input3");
 var text2 = document.getElementById("text2");
-var text3 = document.getElementById("text3");
-var text4 = document.getElementById("text4");
+var progressText = document.getElementById("progressText");
 var mapTileInfo = document.getElementById("mapTileInfo");
 var prevTilesButton = document.getElementById("prevTiles");
 var nextTilesButton = document.getElementById("nextTiles");
@@ -118,6 +92,7 @@ var tiles8 = document.getElementById("tiles8");
 var tiles9 = document.getElementById("tiles9");
 var tilesList = [tiles0, tiles1, tiles2, tiles3, tiles4, tiles5, tiles6, tiles7, tiles8, tiles9];
 button2.addEventListener("click", getTweets, false);
+buttonSingleTweet.addEventListener("click", addTweetByID, false);
 prevButton.addEventListener("click", previous, false);
 nextButton.addEventListener("click", next, false);
 buttonLink.addEventListener("click", openLink, false);
@@ -125,6 +100,16 @@ buttonDownload.addEventListener("click", downloadMapTile, false);
 buttonSat.addEventListener("click", getSatelliteImages, false);
 buttonTime.addEventListener("click", setTimespan, false);
 buttonClouds.addEventListener("click", setmaxCloudCover, false);
+var tweetButton0 = document.getElementById("tweetButton0");
+var tweetButton1 = document.getElementById("tweetButton1");
+var tweetButton2 = document.getElementById("tweetButton2");
+var tweetButton3 = document.getElementById("tweetButton3");
+var tweetButton4 = document.getElementById("tweetButton4");
+var tweetButton5 = document.getElementById("tweetButton5");
+var tweetButton6 = document.getElementById("tweetButton6");
+var tweetButton7 = document.getElementById("tweetButton7");
+var tweetButton8 = document.getElementById("tweetButton8");
+var tweetButton9 = document.getElementById("tweetButton9");
 tweetButton0.addEventListener("click", pickTweet, false);
 tweetButton1.addEventListener("click", pickTweet, false);
 tweetButton2.addEventListener("click", pickTweet, false);
@@ -135,6 +120,7 @@ tweetButton6.addEventListener("click", pickTweet, false);
 tweetButton7.addEventListener("click", pickTweet, false);
 tweetButton8.addEventListener("click", pickTweet, false);
 tweetButton9.addEventListener("click", pickTweet, false);
+var tweetButtons = [tweetButton0, tweetButton1, tweetButton2, tweetButton3, tweetButton4, tweetButton5, tweetButton6, tweetButton7, tweetButton8, tweetButton9];
 prevTilesButton.addEventListener("click", prevTiles, false);
 nextTilesButton.addEventListener("click", nextTiles, false);
 for (var i = 0; i < tilesList.length; i++) {
@@ -151,6 +137,30 @@ var p7 = document.getElementById("p7");
 var p8 = document.getElementById("p8");
 var p9 = document.getElementById("p9");
 var tweetparas = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9];
+var tweetTables = [];
+for (var i = 0; i < 10; i++) {
+  tweetTables[i] = document.getElementById("tweetTable" + i);
+}
+var tweetAttributes = [[], [], [], [], [], [], [], [], [], []];
+for (var i = 0; i < 10; i++) {
+  for (var j = 0; j < 6; j++) {
+    tweetAttributes[i][j] = document.getElementById("tweetAttr" + i + j);
+  }
+}
+var tablePlatform = document.getElementById("tablePlatform");
+var tableID = document.getElementById("tableID");
+var tableStatus = document.getElementById("tableStatus");
+var tableTime = document.getElementById("tableTime");
+var tableCoordinates = document.getElementById("tableCoordinates");
+var pageCounter = document.getElementById("pageCounter");
+var pageCounterTiles = document.getElementById("pageCounterTiles");
+var tableRadius = document.getElementById("tableRadius");
+var tableLat = document.getElementById("tableLat");
+var tableLong = document.getElementById("tableLong");
+var tableTimespan = document.getElementById("tableTimespan");
+var tableCloudCover = document.getElementById("tableCloudCover");
+var progressBarOut = document.getElementById("progressBarOut");
+var progressBarIn = document.getElementById("progressBarIn");//-----------------------
 var coordinatesOfLocationLat = -1000;
 var coordinatesOfLocationLong = -1000;
 var marker0 = new L.marker();
@@ -166,9 +176,7 @@ var marker9 = new L.marker();
 var markerList = [marker0, marker1, marker2, marker3, marker4, marker5, marker6, marker7, marker8, marker9];
 var page = 1;
 var maxPage = Math.ceil(tweetsList.length / 10);
-var pageCounter = document.getElementById("pageCounter");
 var currentTweetPicked = -1;
-var p10 = document.getElementById("p10");
 var tweetLink = "";
 var timespan = 5;
 var maxCloudCover = 50;
@@ -178,31 +186,120 @@ var planetIDs = [];
 var mapTilesIDs = [];
 var pageTiles = 1;
 var maxPageTiles = Math.ceil(copernicusIDs.length / 10);
-var pageCounterTiles = document.getElementById("pageCounterTiles");
 var currentTilePicked = -1;
 var polygonDrawn = false;
 var pickedTile = "";
 var downloadingCopernicus = 0;
 var downloadingPlanet = 0;
 var status = "error";
+var progressBarWidth = 0;
 
 
-function latLongSwitch(coordinates) {
+function latLongSwitch(coordinates) {                     //Wechselt Reihenfolge der Koordinaten, da diese nicht immer Einheitlich ist.
   var newCoordinates;
-  coordinates
-  if (Array.isArray(coordinates[0])) {
+  if (Array.isArray(coordinates[0])) {                    //für Arrays von Koordinaten
     newCoordinates = [];
     for (var i = 0; i < coordinates.length; i++) {
       var l1 = coordinates[i][0];
       var l2 = coordinates[i][1];
       newCoordinates.push([l2, l1]);
     }
-  } else {
+  } else {                                               //für eine Koordinate
     var l1 = coordinates[0];
     var l2 = coordinates[1];
     newCoordinates = [l2, l1];
   }
   return newCoordinates;
+}
+
+function alertParameterError(parameter, min, max) {       //Zeigt Error popup für falsch gesetzte Parameter
+  var text = parameter + " muss zwischen " + min + " und " + max + " liegen!";
+  Swal.fire({
+    title: 'Error!',
+    text: text,
+    icon: 'error',
+    confirmButtonText: 'OK'
+  })
+}
+
+function alertTweetsFound(tweetNumber, nrInDB) {        //Info über gefundene Tweets
+  var infoMessage = "Es wurden <b>" + tweetNumber + "</b> Tweets gefunden, davon <b>" + nrInDB + "</b> in der Datenbank!";
+  Swal.fire({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true,
+    icon: "info",
+    title: "Tweets",
+    html: infoMessage,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+ }})
+}
+
+function alertSatsFound(satsNrTotal, satsNrCopernicus, satsNrPlanet) {      // Info über gefundene Satellitenbilder
+  var infoMessage = "Es wurden <b>" + satsNrTotal + "</b> Satellitenbilder gefunden, davon <b>" + satsNrCopernicus + "</b> bei Copernicus und <b>" + satsNrPlanet + "</b> bei Planet!";
+  Swal.fire({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true,
+    icon: "info",
+    title: "Satellitenbilder",
+    html: infoMessage,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+ }})
+}
+
+function alertGenericError(message) {       //Zeigt popup für sonstige Fehler
+  Swal.fire({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    icon: "error",
+    title: "Fehler!",
+    text: message,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+ }})
+}
+function alertGenericSuccess(message) {       //Zeigt popup für sonstige Erfolge
+  Swal.fire({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    icon: "success",
+    title: "Erfolg!",
+    text: message,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+ }})
+}
+function alertGenericInfo(message) {       //Zeigt popup für sonstige Infos
+  Swal.fire({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    icon: "info",
+    title: "Info",
+    text: message,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+ }})
 }
 //-------------------------------------------Geocoding--------------------------------------------------------
 var locations = [];                                                             //Liste der Locations der Twitter user (Name + Koordinaten) aus DB
@@ -213,11 +310,16 @@ var locations = [];                                                             
 
 /* UI Update */
 function updateText() {                                                         //Setzt Text:
+  text1.innerHTML = "Auf die Karte klicken um Area of Interest mit Radius von " + radius + " km zu setzen!"
   if (centerLat == -1000 || centerLong == -1000) {                              //wenn keine Area of Interest gesetz wurde:
-     text1.innerHTML = "Klicken um Area of Interest mit Radius von " + radius + " km zu setzen!" // Hinweis zur Nutzung
+    tableRadius.innerHTML = radius + " km";
+    tableLat.innerHTML = "";
+    tableLong.innerHTML = "";
   } else {                                                                      //wenn eine AOI gesetz wurde:
     button2.disabled = false;                                                   //aktiviert Button zur Tweetsuche
-    text1.innerHTML = "Area of Interest ist " + radius + " km um Koordinate  " + centerLat + " / " + centerLong + " (Lat/Long)!"; //beschreibt AOI
+    tableRadius.innerHTML = radius + " km";
+    tableLat.innerHTML = centerLat;
+    tableLong.innerHTML = centerLong;
   }
 }
 
@@ -226,7 +328,7 @@ function onMapClick(e) {
   centerLat = e.latlng.lat;
   centerLong = e.latlng.lng;
   map.removeLayer(circle);
-  circle = new L.circle(e.latlng, {radius : radius * 1000});                    //erstellt Kreis zur Visualisierung
+  circle = new L.circle(e.latlng, {radius : radius * 1000, fillOpacity: 0});                    //erstellt Kreis zur Visualisierung
   map.addLayer(circle);
   updateText();
 }
@@ -238,10 +340,8 @@ function setUserRadius() {
     circle.setRadius(radius * 1000);                                            //rechnet in Meter um
     updateText();
   } else {
-    alert("Radius muss zwischen 1 und 500 liegen!")                             //sonst error
-    //console.log(tweets);
+    alertParameterError("Radius", 1, 500);                                      //sonst error
   }
-
 }
 
 //####################################################################################################################################
@@ -282,10 +382,14 @@ async function getTweets() {
   tweetsList = [];          //
   tweetsDBObj = await getTweetsDB();                                            //alle Tweets aus DB
   tweetsObj = await getTweetsAPI();                                             //Tweets der API in AOI
-  //console.log(tweetsDBObj);
-  //console.log(tweetsObj.statuses[0]);
+  page = 1;
   for (var i = 0; i < tweetsDBObj.length; i++) {                                //Tweets aus DB in Liste speichern, wenn diesenin AOI sind
     if (getDistanceFromLatLonInKm(centerLat, centerLong, tweetsDBObj[i].lat, tweetsDBObj[i].long) < radius) {
+      if (tweetsDBObj[i].tweetObject.geo == null) {
+        var coordinates = [tweetsDBObj[i].lat, tweetsDBObj[i].long];
+        var geo = { coordinates };
+        tweetsDBObj[i].tweetObject.geo = geo;
+      }
       tweetsDB.push(tweetsDBObj[i].tweetObject);
     }
   }
@@ -298,21 +402,19 @@ async function getTweets() {
     }
     if (inDBList == false) {                                                    //wenn Tweets nicht in Liste:
       if (tweetsObj.statuses[i].geo != undefined) {                             //wenn Geodaten vorhanden:
-        console.log("add");                                                     //hinzufügen
-        addTweetsDB(tweetsObj.statuses[i], tweetsObj.statuses[i].geo.coordinates[0], tweetsObj.statuses[i].geo.coordinates[1]);
+        addTweetsDB(tweetsObj.statuses[i], tweetsObj.statuses[i].geo.coordinates[0], tweetsObj.statuses[i].geo.coordinates[1]);//hinzufügen
       } else {                                                                  //wenn keine Geodaten vorhanden:
         var locationObj = await getCoordinatesOfLocation(tweetsObj.statuses[i]);//Koordinaten über locationiq API erhalten
-        //console.log(locationObj);
         if (locationObj != [] && locationObj[0] != undefined) {
           if (locationObj[0] != undefined && locationObj[0] != undefined) {
             var coordinates = [locationObj[0], locationObj[1]];
             var geo = { coordinates };
             tweetsObj.statuses[i].geo = geo;
           } else {
-            console.log("no coordinates found");
+            alertGenericError("Keine Koordinaten für Tweet NR " + i + " gefunden!");
           }
         }else {
-          console.log("no location found");
+          alertGenericError("Kein Ortsname für Tweet NR " + i + " gefunden!");
         }
       }
       if (tweetsObj.statuses[i].user.location != "YAMA" && tweetsObj.statuses[i].user.location != "PRISTIN" && tweetsObj.statuses[i].user.location != "Surabaya, INDONESIA") {  //Tweets aus Japan und Thailand rausfiltern
@@ -320,10 +422,8 @@ async function getTweets() {
       }
     }
   }
-  //console.log(tweetsDB);
-  //console.log(tweets);
   tweetsList = tweetsDB.concat(tweets);                                         //beide Listen zusammenfügen
-  //console.log(tweetsList);
+  alertTweetsFound(tweetsList.length, tweetsDB.length);                         //Zeigt Ergebnis als popup
   maxPage = Math.ceil(tweetsList.length / 10);                                  //Anzahl an Seiten für Tweets setzten
   updatePageCounter();                                                          //UI updaten
   showTweets();                                                                 //Tweets anzeigen
@@ -334,7 +434,7 @@ async function getTweets() {
 Anfrage an Twitter API für Tweets in AOI (7 Tage zurück) */
 async function getTweetsAPIH() {
   try {
-    var url = urlAPITweet + centerLat + "/" + centerLong + "/" + radius
+    var url = urlAPITweet + centerLat + "/" + centerLong + "/" + radius;
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'same-origin'
@@ -347,8 +447,6 @@ async function getTweetsAPIH() {
 }
 async function getTweetsAPI() {
   var tweetsTemp = await getTweetsAPIH();
-  //showTweets();
-  //console.log(tweetsTemp);
   return tweetsTemp;
 }
 //-------------------------------------------------------------------------------------------------------
@@ -370,17 +468,10 @@ async function getSingleTweetH(id) {
 }
 async function getSingleTweet(id) {
   var tweet = await getSingleTweetH(id);
-  //showTweets();
-  addTweetsDB(tweet, tweet.geo.coordinates[0], tweet.geo.coordinates[1]);
-  //console.log(tweet);
+  //addTweetsDB(tweet, tweet.geo.coordinates[0], tweet.geo.coordinates[1]);
+  return tweet;
 }
-//getSingleTweet("1533713231830822914");
-//getSingleTweet("1532646733842460700");
-//getSingleTweet("1535026489972117500");
-//getSingleTweet("1535976604509212700");
-//getSingleTweet("1532646733842460674");
-//getSingleTweet("1535026489972117504");
-//getSingleTweet("1535976604509212672 ");
+
 //-------------------------------------------------------------------------------------------------------
 //GET TWEETS DB
 /* getTweetsDBH + getTweetsDB:
@@ -400,16 +491,13 @@ async function getTweetsDBH() {
 }
 async function getTweetsDB() {
   var tweetsDBTemp = await getTweetsDBH();
-  //showTweets();
-  //console.log(tweetsDB);
   return tweetsDBTemp;
 }
-getTweetsDB();
 //-------------------------------------------------------------------------------------------------------
 // ADD SINGLE TWEET DB
 /* getSingleTweetDBH + getSingleTweetDB:
 Anfrage an DB für Tweets, überprüft ob übergebene ID in DB ist, gibt boolean zurück
-TEST */
+ */
 async function getSingleTweetDBH() {
   try {
       var url = urlDBTweet;
@@ -427,12 +515,30 @@ async function getSingleTweetDB(id) {
   tweetsDB = await getSingleTweetDBH();
   var idFound = false;
   for (var i = 0; i < tweetsDB.length; i++) {
-    if (tweetsDB[i].tweetObject.id == id) {
+    if (tweetsDB[i].tweetObject.id_str == id) {
       idFound = true;
     }
   }
-  //showTweets();
-  //console.log(tweetsDB);
+  return idFound;
+}
+
+/* Wie getSingleTweetDB, aber checkt ob Geodaten vorhanden sind */
+async function getSingleTweetDBGeo(id) {
+  tweetsDB = await getSingleTweetDBH();
+  var idFound = false;
+  for (var i = 0; i < tweetsDB.length; i++) {
+    if (tweetsDB[i].tweetObject.id_str == id) {
+      if (isNaN(tweetsDB[i].lat) || isNaN(tweetsDB[i].long)) {
+        idFound = false;
+      } else {
+        if (tweetsDB[i].lat > 90 || tweetsDB[i].lat < -90 || tweetsDB[i].long > 180 || tweetsDB[i].long < -180) {
+          idFound = false;
+        } else {
+          idFound = true;
+        }
+      }
+    }
+  }
   return idFound;
 }
 //-------------------------------------------------------------------------------------------------------
@@ -445,7 +551,7 @@ async function addTweetsDBH(tweet, lat, long) {
     var dataJSON = JSON.stringify(data);
     var url = urlDBTweet;
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'PUT',
       credentials: 'same-origin',
       headers: {
         "Content-Type": "application/json"
@@ -460,51 +566,103 @@ async function addTweetsDBH(tweet, lat, long) {
 }
 async function addTweetsDB(tweet, lat, long) {
   var test = await addTweetsDBH(tweet, lat, long);
-  //showTweets();
-  //console.log(test);
 }
 //-------------------------------------------------------------------------------------------------------
 //Tweets anzeigen
 /* Zeigt 10 Tweets auf Seite an
 Zeigt Text, Erstellungszeitpunkt, Koordinate, locationName */
 function showTweets() {
-  for (var i = 0; i < tweetparas.length; i++) {
+  for (var i = 0; i < tweetAttributes.length; i++) {
     var pos = i + ((page - 1) * 10);
     if (tweetsList[pos] != undefined) {
-      var geo = "N/A"
+      var geo = "N/A";
       if (tweetsList[pos].geo != undefined && tweetsList[pos].geo.coordinates[0] != -3000 && tweetsList[pos].geo.coordinates[1] != -3000) {
-        geo = tweetsList[pos].geo.coordinates;
+        geo = tweetsList[pos].geo.coordinates;                  //Setzt Geodaten falls vorhanden
       }
-      var text = tweetsList[pos].text + " <br> Erstellungszeitpunkt: " + tweetsList[pos].created_at + " <br> geo: " + geo + " <br> location: " + tweetsList[pos].user.location;
-      tweetparas[i].innerHTML = text;
+      var geotagging = "Nein";                                  //Setzt Styles der Tweet Tabellen
+      tweetButtons[i].style.backgroundColor = "white";          //     |
+      tweetButtons[i].style.display = "block";                  //    \/
+      if (tweetsList[pos].geo != null && tweetsList[pos].geo.type === "Point") {
+        geotagging = "Ja";
+        tweetTables[i].style.border = "3px solid lightblue";
+        tweetButtons[i].style.backgroundColor = "lightblue";
+        tweetButtons[i].style.border = "1px solid lightblue";
+      } else {
+        tweetTables[i].style.border = "1px solid black";
+        tweetButtons[i].style.backgroundColor = "lightseagreen";
+        tweetButtons[i].style.border = "1px solid black";
+      }
+      var userLocation = "N/A";
+      if (tweetsList[pos].user.location !== "") {
+        userLocation = tweetsList[pos].user.location;
+      }
+      tweetTables[i].style.display = "block";
+      tweetAttributes[i][0].innerHTML = tweetsList[pos].text;                   // Fügt Werte den Tabellen hinzu
+      tweetAttributes[i][1].innerHTML = tweetsList[pos].user.name + " (" + tweetsList[pos].user.id_str + ")";
+      tweetAttributes[i][2].innerHTML = tweetsList[pos].created_at;
+      tweetAttributes[i][3].innerHTML = geo;
+      tweetAttributes[i][4].innerHTML = userLocation;
+      tweetAttributes[i][5].innerHTML = geotagging;
+      tweetparas[i].style.display = "block";
+      var tweetNR = pos + 1;
+      tweetparas[i].innerHTML = "Tweet " + tweetNR;
     } else {
-      console.log("kein " + pos + ". Tweet gefunden");
+      tweetTables[i].style.display = "none";
+      tweetparas[i].style.display = "none";
+      tweetButtons[i].style.display = "none";
     }
   }
-  unPickTweet();
-  showTweetsOnMap();
+  unPickTweet();      //enfernt Tweet Wahl
+  showTweetsOnMap();  //Zeigt Tweets auf Karte
 }
+
 
 /* Zeigt Tweets auf Map an
 Setzt Marker für 10 Tweets */
 async function showTweetsOnMap() {
   for (var i = 0; i < markerList.length; i++) {
     var pos = i + ((page - 1) * 10);
+    var tweetNR = pos + 1;
     map.removeLayer(markerList[i]);
     if (tweetsList[pos] != undefined) {
-      //console.log(tweetsList[pos].geo.coordinates);
       if (tweetsList[pos].geo == undefined || tweetsList[pos].geo.coordinates[0] == -3000 || tweetsList[pos].geo.coordinates[1] == -3000) {
-        //alert("keine Geodaten verfügbar");
-        //getCoordinatesOfLocation();
+        alertGenericError("Keine Geodaten für Tweet NR " + tweetNR + "gefunden");
       } else {
         markerList[i].setLatLng(tweetsList[pos].geo.coordinates);
-        markerList[i].bindPopup(tweetsList[pos].text + " <br> Erstellungszeitpunkt: " + tweetsList[pos].created_at + " <br> geo: " + tweetsList[pos].geo.coordinates + " <br> location: " + tweetsList[pos].user.location).openPopup();
+        markerList[i].bindPopup("Tweet " + tweetNR).openPopup();
         map.addLayer(markerList[i]);
       }
-    } else {
-
     }
   }
+}
+/* Fügt einen Tweet der Datenbank hinzu */
+async function addTweetByID() {
+  var inputID = inputSingleTweet.value;
+  inputSingleTweet.value = "";
+  var tweetInDB = await getSingleTweetDBGeo(inputID);
+  var tweetExists = false;
+  if (tweetInDB == false) {
+    tweetExists = await getSingleTweet(inputID);
+    if (tweetExists != false) {
+      var geo = [-1000, -1000];
+      if (tweetExists.geo != undefined) {
+        geo[0] = tweetExists.geo.coordinates[0];
+        geo[1] = tweetExists.geo.coordinates[1];
+      } else {
+        geo = await getCoordinatesOfLocation(tweetExists);
+        var coordinates = geo;
+        var geoTemp = { coordinates };
+        tweetExists.geo = geoTemp
+      }
+      addTweetsDB(tweetExists, geo[0], geo[1]);
+      alertGenericSuccess("Der Tweet wurde zur Datenbank hinzugefügt");
+    } else {
+      alertGenericError("Es wurde kein Tweet mit dieser ID gefunden");
+    }
+  } else {
+    alertGenericInfo("Dieser Tweet ist bereits in der Datenbank");
+  }
+
 }
 //####################################################################################################################################
 //########   Geocoding   #############################################################################################################
@@ -518,21 +676,24 @@ async function getCoordinatesOfLocation(tweet) {
   var coordinatesTemp = [-1000, -1000];
   var locationAPI = [-2000, -2000];
   locations = await getLocationsDB();
-  for (var i = 0; i < locations.length; i++) {
+  for (var i = 0; i < locations.length; i++) {                    //Vergleich: Locations aus DB
     if (locations[i].locationName == tweet.user.location) {
       coordinatesTemp = [locations[i].lat, locations[i].long];
     }
   }
   if (coordinatesTemp[0] == -1000 || coordinatesTemp[1] == -1000) {
     locationAPI = await getLocationsAPI(tweet.user.location);
-    if (locationAPI == [] || locationAPI[0] == undefined || locationAPI[0] == -2000 || locationAPI[1] == -2000) {
+    if (locationAPI == [] || locationAPI == undefined) {                //Vergleich: Locations der API
       coordinatesTemp = [-3000, -3000];
     } else {
-      addLocationsDB(tweet.user.location, locationAPI[0].latitude, locationAPI[0].longitude);
-      coordinatesTemp = [locationAPI[0].latitude, locationAPI[0].longitude];
+      if (locationAPI[0] == undefined || locationAPI[0] == -2000 || locationAPI[1] == -2000) {
+        coordinatesTemp = [-3000, -3000];
+      } else {
+        addLocationsDB(tweet.user.location, locationAPI[0].latitude, locationAPI[0].longitude);   //Fügt neue Locations zur DB hinzu
+        coordinatesTemp = [locationAPI[0].latitude, locationAPI[0].longitude];
+      }
     }
   }
-  //console.log(coordinatesTemp);
   return coordinatesTemp;
 }
 
@@ -574,21 +735,23 @@ async function addLocationsDB(locationName, lat, long) {
 
 /* Anfrage an locationiq API für Koordinaten einer Location */
 async function getLocationsAPI(name) {
-  try {
-    var url = urlAPILocation + name;
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'same-origin'
-      });
-    const responseData = await response.json();
-    return responseData;
-    } catch (error) {
-      console.error(error);
-    }
+  if (name != "") {
+    try {
+      var url = urlAPILocation + name;
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'same-origin'
+        });
+      const responseData = await response.json();
+      return responseData;
+      } catch (error) {
+        console.error(error);
+      }
+  }
 }
 
 //####################################################################################################################################
-//####################################################################################################################################
+//##########   Tweet wählen   ########################################################################################################
 //####################################################################################################################################
 
 /* wählt Tweet aus
@@ -598,28 +761,37 @@ wenn gewählter Tweet gewählt -> Tweet nicht mehr gewählt */
 function pickTweet() {
   clearMap();
   showTweetsOnMap();
-  var selectedTweet =  this.id;
-  var selectedTweetNumber = this.id.slice(-1);
+  var selectedTweet =  this.id.slice(-1);
+  var selectedTweetNumber = parseInt(selectedTweet) + ((page - 1) * 10);;
   if (currentTweetPicked != selectedTweetNumber) {
-    for (var i = 0; i < tweetparas.length; i++) {
-      if (i != selectedTweetNumber) {
-        tweetparas[i].style.backgroundColor = "inherit";
+    for (var i = 0; i < tweetTables.length; i++) {
+      var pos = i + ((page - 1) * 10);
+      if (pos != selectedTweet) {
+        if (tweetsList[pos] !== undefined) {
+          if (tweetsList[pos].geo != null && tweetsList[pos].geo.type !== undefined) {
+            tweetTables[i].style.border = "3px solid lightblue";
+            tweetButtons[i].style.backgroundColor = "lightblue";
+            tweetButtons[i].style.border = "1px solid lightblue";
+          } else {
+            tweetTables[i].style.border = "0px solid black";
+            tweetButtons[i].style.backgroundColor = "white";
+          }
+        }
         map.removeLayer(markerList[i]);
       }
     }
     currentTweetPicked = selectedTweetNumber;
-    tweetparas[selectedTweetNumber].style.backgroundColor = "lightgreen";
-    markerList[selectedTweetNumber].openPopup();
-
-    console.log(tweetsList[selectedTweetNumber]);
+    tweetTables[selectedTweet].style.border = "3px solid lightgreen";
+    tweetButtons[selectedTweet].style.backgroundColor = "lightgreen";
+    markerList[selectedTweet].openPopup();
+    map.addLayer(markerList[selectedTweet]);
     var geo = "N/A"
     if (tweetsList[selectedTweetNumber].geo != undefined) {
       geo = tweetsList[selectedTweetNumber].geo.coordinates;
     }
-    var text = tweetsList[selectedTweetNumber].text + " <br> Erstellungszeitpunkt: " + tweetsList[selectedTweetNumber].created_at + " <br> geo: " + geo + " <br> location: " + tweetsList[selectedTweetNumber].user.location + "<br> Antwort auf: " + tweetsList[selectedTweetNumber].in_reply_to_status_id;
-    p10.innerHTML = text;
     tweetLink = "https://twitter.com/" + tweetsList[selectedTweetNumber].user.screen_name + "/status/" + tweetsList[selectedTweetNumber].id_str;
     buttonLink.style.display = "block";
+    buttonLink.innerHTML = "Tweet " + (selectedTweetNumber + 1) + " öffnen";
     buttonSat.disabled = false;
   } else {
     unPickTweet();
@@ -631,12 +803,26 @@ function unPickTweet() {
   clearMap();
   showTweetsOnMap();
   currentTweetPicked = -1;
-  p10.innerHTML = "";
   tweetLink = "";
   buttonLink.style.display = "none";
   buttonSat.disabled = true;
-  for (var i = 0; i < tweetparas.length; i++) {
-    tweetparas[i].style.backgroundColor = "inherit";
+  for (var i = 0; i < tweetTables.length; i++) {
+    var pos = i + ((page - 1) * 10);
+    if (tweetsList[pos] !== undefined) {
+      if (tweetsList[pos].geo != null && tweetsList[pos].geo.type === "Point") {
+        tweetTables[i].style.border = "3px solid lightblue";
+        tweetButtons[i].style.backgroundColor = "lightblue";
+      } else {
+        tweetTables[i].style.border = "0px solid black";
+        tweetButtons[i].style.backgroundColor = "white";
+      }
+    } else {
+      tweetTables[i].style.border = "0px solid black";
+      tweetButtons[i].style.backgroundColor = "white";
+      tweetTables[i].style.display = "none";
+      tweetparas[i].style.display = "none";
+      tweetButtons[i].style.display = "none";
+    }
   }
 }
 
@@ -654,8 +840,10 @@ function openLink() {
 /* gibt Datum zurück, errechnet aus Datum und Abstand in Tagen */
 function addDays(date, days) {
   var result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
+  var unix = Date.parse(result);
+  var change = days * 86400000;
+  var unixNew = unix + change;
+  return unixNew;
 }
 
 /* Sortiert 2D Array */
@@ -675,12 +863,9 @@ function convertTime(time) {
   var date = new Date(time);
   var dateA = addDays(date, -timespan);
   var dateB = addDays(date, timespan);
-  var dateAISO = dateA.toISOString();
-  var dateBISO = dateB.toISOString();
+  var dateAISO = new Date(dateA).toISOString();
+  var dateBISO = new Date(dateB).toISOString();
   return [dateAISO, dateBISO];
-  //console.log(date);
-  //console.log(dateAISO);
-  //console.log(dateBISO);
 }
 
 /* Anfrage nach Satellitenbildern
@@ -698,37 +883,39 @@ async function getSatelliteImages() {
   var date = convertTime(tweetsList[currentTweetPicked].created_at);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Database~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   var dbSearchRes = await searchDB();
-  console.log(dbSearchRes);
   for (var i = 0; i < dbSearchRes.length; i++) {
     dbIDs.push([dbSearchRes[i].mapTileID, dbSearchRes[i].status]);
   }
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~copernicus~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  var copernicusSearchRes = await searchCopernicus(latCurrent, longCurrent, date[0], date[1], maxCloudCover / 10);
-  console.log(copernicusSearchRes);
-  if (copernicusSearchRes.feed.entry != undefined) {
-    for (var i = 0; i < copernicusSearchRes.feed.entry.length; i++) {
-      var polygon = [];
-      var polygonText = copernicusSearchRes.feed.entry[i].str[2]._text.substring(16, copernicusSearchRes.feed.entry[i].str[2]._text.length -3);
-      var polygonText2 = polygonText.split(", ");
-      for (var j = 0; j < polygonText2.length; j++) {
-        var polygonText3 = polygonText2[j].split(" ");
-        polygon.push([parseFloat(polygonText3[1]), parseFloat(polygonText3[0])]);
-      }
-      status = "downloadable";
-      for (var j = 0; j < dbIDs.length; j++) {
-        if (dbIDs[j][0] == copernicusSearchRes.feed.entry[i].id._text) {
-          status = dbIDs[1];
+  var copernicusSearchRes = await searchCopernicus(latCurrent, longCurrent, date[0], date[1], maxCloudCover);
+  if (copernicusSearchRes.feed != undefined) {
+    if (copernicusSearchRes.feed.entry != undefined) {
+      for (var i = 0; i < copernicusSearchRes.feed.entry.length; i++) {
+        var polygon = [];
+        var polygonText = copernicusSearchRes.feed.entry[i].str[2]._text.substring(16, copernicusSearchRes.feed.entry[i].str[2]._text.length -3);
+        var polygonText2 = polygonText.split(", ");
+        for (var j = 0; j < polygonText2.length; j++) {
+          var polygonText3 = polygonText2[j].split(" ");
+          polygon.push([parseFloat(polygonText3[1]), parseFloat(polygonText3[0])]);
         }
+        status = "downloadable";
+        for (var j = 0; j < dbIDs.length; j++) {
+          if (dbIDs[j][0] == copernicusSearchRes.feed.entry[i].id._text) {
+            status = dbIDs[j][1];
+          }
+        }
+        copernicusIDs.push(["copernicus", copernicusSearchRes.feed.entry[i].id._text, status, copernicusSearchRes.feed.entry[i].date[2]._text, polygon]);
       }
-      copernicusIDs.push(["copernicus", copernicusSearchRes.feed.entry[i].id._text, status, copernicusSearchRes.feed.entry[i].date[2]._text, polygon]);
+    } else {
+      alertGenericError("Keine Copernicus Satellitenbilder gefunden");
     }
   } else {
-    console.log("No copernicus data found");
+    alertGenericError("Keine Copernicus Satellitenbilder gefunden");
   }
+
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Planet~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   var planetSearchRes = await searchPlanet(latCurrent, longCurrent, date[0], date[1], maxCloudCover / 10);
-  console.log(planetSearchRes);
-  if (planetSearchRes.features != undefined) {
+  if (planetSearchRes.features != undefined && planetSearchRes.features != "error") {
     for (var i = 0; i < planetSearchRes.features.length; i++) {
       var polygon = [];
       var polygonTemp = [];
@@ -740,12 +927,8 @@ async function getSatelliteImages() {
       for (var j = 0; j < planetSearchRes.features[i].geometry.coordinates[0].length; j++) {
         if (planetSearchRes.features[i].geometry.coordinates[0][j] != undefined) {
           polygonTemp.push(planetSearchRes.features[i].geometry.coordinates[0][j]);
-          console.log(polygonTemp);
           totalLat = totalLat + polygonTemp[j][0];
           totalLong = totalLong + polygonTemp[j][1];
-        } else {
-          console.log(polygonTemp);
-          console.log(planetSearchRes.features[i] + i);
         }
       }
       avgLat = totalLat / polygonTemp.length;
@@ -754,9 +937,7 @@ async function getSatelliteImages() {
         var angle = Math.atan2( avgLong - polygonTemp[j][1], avgLat - polygonTemp[j][0]) * ( 180 / Math.PI );
         polygonTempSorted[j] = [angle, polygonTemp[j]];
       }
-      //console.log(polygonTempSorted);
       polygonTempSorted.sort(sortFunction);
-      //console.log(polygonTempSorted);
       for (var j = 0; j < polygonTempSorted.length; j++) {
         polygon[j] = polygonTempSorted[j][1];
       }
@@ -769,11 +950,9 @@ async function getSatelliteImages() {
       planetIDs.push(["planet", planetSearchRes.features[i].id, status, planetSearchRes.features[i].properties.acquired, latLongSwitch(polygon)]);
     }
   } else {
-    console.log("No planet data found");
+    alertGenericError("Keine Planet Satellitenbilder gefunden");
   }
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Combine~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  console.log(copernicusIDs);
-  console.log(planetIDs);
   if (copernicusIDs != []) {
     for (var i = 0; i < copernicusIDs.length; i++) {
       mapTilesIDs.push(copernicusIDs[i]);
@@ -784,8 +963,8 @@ async function getSatelliteImages() {
       mapTilesIDs.push(planetIDs[i]);
     }
   }
-  console.log(mapTilesIDs);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~UI~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  alertSatsFound(mapTilesIDs.length, copernicusIDs.length, planetIDs.length);
   maxPageTiles = Math.ceil(mapTilesIDs.length / 10);
   updatePageCounterTiles();
 }
@@ -814,9 +993,6 @@ async function searchCopernicus(lat, long, dateA, dateB, maxCloudCover) {
       credentials: 'same-origin'
       });
     const responseData = await response.json();
-    //var responseDataT = responseData.replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
-    //var responseDataT2 = xml2json(parseXml(responseDataT));
-    //var responseDataJSON = JSON.parse(xml2json(parseXml(responseDataT)));
     return responseData;
     } catch (error) {
       console.error(error);
@@ -861,7 +1037,7 @@ async function copernicusDownload(uuid) {
       method: 'GET',
       credentials: 'same-origin'
       });
-    const responseData = await response.json();
+    const responseData = await response.text();
     return responseData;
     } catch (error) {
       console.error(error);
@@ -873,37 +1049,21 @@ async function copernicusMapTiles(uuid) {
   var downloading = await getDownloading();
   downloadingCopernicus = downloading[0];
   if (downloadingCopernicus.length <= 2) {
-    console.log("downloading " + uuid);
     var temp = await copernicusDownload(uuid);
     var finished = true;
-    while (finished === false) {
-      downloading = await getDownloading();
-
-    }
+    buttonDownload.disabled = true;
+    progressText.style.display = "block";
+    progressBarOut.style.display = "block";
+    progressBarIn.style.display = "block";
+    progressBarWidth = 0;
+    checkDownload(uuid, "copernicus");
     if (temp !== "error") {
-      console.log("finished downloading " + uuid);
     } else {
-      console.log("download of " + uuid + " failed");
+      alertGenericError("Herunterladen von " + uuid + "fehlgeschlagen!");
     }
   } else {
-    console.log("Downloadkapazität erreicht");
+    alertGenericError("Downloadkapazität erreicht");
   }
-  /*
-  try {
-    var url = copernicusMapTiles + uuid;
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'same-origin'
-      });
-    const responseData = await response.blob();
-    console.log(responseData);
-    //var responseDataT = responseData.replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
-    //var responseDataT2 = xml2json(parseXml(responseDataT));
-    //var responseDataJSON = JSON.parse(xml2json(parseXml(responseDataT)));
-    return responseData;
-    } catch (error) {
-      console.error(error);
-    }*/
 }
 
 /* Download Planet */
@@ -914,8 +1074,6 @@ async function planetDownload(id) {
       method: 'GET',
       credentials: 'same-origin'
       });
-    //const responseData = await response.json();
-    //return responseData;
     } catch (error) {
       console.error(error);
     }
@@ -926,40 +1084,95 @@ async function planetMapTiles(uuid) {
   var downloading = await getDownloading();
   downloadingPlanet = downloading[1];
   if (downloadingPlanet.length <= 2) {
-    console.log("downloading " + uuid);
     buttonDownload.innerHTML = "downloading..."
+    buttonDownload.disabled = true;
     for (var i = 0; i < tilesList.length; i++) {
       tilesList[i].disabled = true;
     }
-    checkDownload(uuid);
+    checkDownload(uuid, "planet");
     var temp = await planetDownload(uuid);
   } else {
-    console.log("Downloadkapazität erreicht");
+    alertGenericError("Downloadkapazität erreicht");
   }
 }
 
+/* Progress bar */
+function progressing(percent) {
+  var width = progressBarWidth;
+  var id = setInterval(frame, 10);
+  function frame() {
+    if (width >= percent) {
+      clearInterval(id);
+    } else {
+      width++;
+      progressBarIn.style.width = width + '%';
+      progressBarWidth = width;
+    }
+  }
+}
 /* Downloadstatus Check */
-async function checkDownload(uuid) {
+async function checkDownload(uuid, service) {
   setTimeout(async function(){
     var stillRunning = false;
     var downloading = await getDownloading();
-    for (var i = 0; i < downloading.length; i++) {
-      if (downloading[i] === uuid) {
-        stillRunning = true;
+    if (service === "copernicus") {
+      for (var i = 0; i < downloading[0].length; i++) {
+        if (downloading[0][i][0] === uuid) {
+          stillRunning = true;
+          if (downloading[0][i][1] === "downloading") {
+            progressText.innerHTML = "Dateien werden heruntergeladen..."
+            progressing(10);
+          } else if (downloading[0][i][1] === "unzipping") {
+            progressText.innerHTML = "Dateien werden entpackt..."
+            progressing(40);
+          } else if (downloading[0][i][1].includes("converting")) {
+            var conversionsDone = downloading[0][i][1].charAt(downloading[0][i][1].length - 1);
+            progressText.innerHTML = "Dateien werden konvertiert...";
+            progressing((parseInt(conversionsDone) * 10) + 40);
+          } else if (downloading[0][i][1] === "merging") {
+            progressText.innerHTML = "Kanäle werden zu Farbbild zusammengefügt..."
+            progressing(90);
+          }
+          progressText.style.display = "block";
+          progressBarOut.style.display = "block";
+          progressBarIn.style.display = "block";
+        }
+      }
+
+    } else if (service === "planet") {
+      for (var i = 0; i < downloading[1].length; i++) {
+        if (downloading[1][i][0] === uuid) {
+          stillRunning = true;
+          if (downloading[1][i][1] === "downloading") {
+            progressText.innerHTML = "Dateien werden heruntergeladen..."
+            progressText.style.display = "block";
+            progressBarOut.style.display = "block";
+            progressBarIn.style.display = "block";
+            progressing(20);
+          } else if (downloading[1][i][1] === "converting") {
+            progressText.innerHTML = "Dateien werden konvertiert..."
+            progressing(80);
+          }
+          progressText.style.display = "block";
+          progressBarOut.style.display = "block";
+          progressBarIn.style.display = "block";
+        }
       }
     }
-    console.log(downloading);
-    console.log(uuid);
-    console.log(stillRunning);
     if (stillRunning) {
-      checkDownload(uuid);
+      checkDownload(uuid, service);
     } else {
-      console.log("finished downloading " + uuid);
+      alertGenericSuccess(uuid + "fertig heruntergeladen");
+      progressText.innerHTML = "Fertig!"
+      progressText.style.display = "none";
+      progressBarOut.style.display = "none";
+      progressBarIn.style.display = "none";
       buttonDownload.innerHTML = "Anzeigen";
+      buttonDownload.disabled = false;
       mapTilesIDs[pickedTile][2] = "downloaded";
       pickTile(pickedTile);
     }
-  }, 5000)
+  }, 10000)
 }
 
 /* Anfrage für Order eines MapTiles an Planet API mit ID */
@@ -971,7 +1184,6 @@ async function makePlanetOrder(id) {
       credentials: 'same-origin'
       });
     const responseData = await response.json();
-    console.log(responseData);
     return responseData;
     } catch (error) {
       console.error(error);
@@ -980,9 +1192,7 @@ async function makePlanetOrder(id) {
 
 /* Anfrage für Order eines MapTiles an Planet API mit ID */
 async function planetOrder(uuid) {
-  console.log("ordering " + uuid);
   var temp = await makePlanetOrder(uuid);
-  console.log(temp);
   refreshStatus(uuid);
 }
 
@@ -1022,30 +1232,56 @@ async function updateOrderStatusDB(id, status) {
     }
 }
 
+async function deleteFailedOrders(uuid) {
+  var data = { mapTileID: uuid };
+  var dataJSON = JSON.stringify(data);
+  try {
+      var url = urlDBMapTiles;
+      const response = await fetch(url, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: dataJSON
+        });
+      const responseData = await response.json();
+      return responseData;
+    } catch (error) {
+      console.error(error);
+    }
+}
+
 /* Anfrage an Planet API um Status der Order zu aktualisieren */
 async function refreshStatus(uuid) {                            //TODO: refresh on load
-  console.log("refreshing orderstatus of " + uuid);
   var order = await getOrderStatus(uuid);
-  console.log(order);
   var state = order.state;
-  if (state === "running" || state === "queued") {
-    console.log("still running");
-    mapTilesIDs[pickedTile][2] = "ordered";
+  if (state === "failed") {
+    alertGenericError("Bestellung von " + uuid + "fehlgeschlagen!");
+    deleteFailedOrders(uuid);
+    buttonDownload.innerHTML = "Order";
+    mapTilesIDs[pickedTile][2] = "orderable";
     pickTile(pickedTile);
   } else {
-    if (state === "success") {
-      mapTilesIDs[pickedTile][2] = "downloadable";
-      updateOrderStatusDB(uuid, "downloadable");
+    if (state === "running" || state === "queued") {
+      alertGenericInfo("Bestellung wird noch bearbeitet");
+      mapTilesIDs[pickedTile][2] = "ordered";
       pickTile(pickedTile);
     } else {
-      console.log("error");
+      if (state === "success") {
+        alertGenericSuccess("Bestellung bereit");
+        mapTilesIDs[pickedTile][2] = "downloadable";
+        updateOrderStatusDB(uuid, "downloadable");
+        pickTile(pickedTile);
+      } else {
+        alertGenericError("Aktualisierung fehlgeschlagen");
+      }
     }
   }
 }
 
 /* Download MapTile */
 function downloadMapTile() {
-  console.log(mapTilesIDs[pickedTile]);
   if (status !== "error") {
     if (status === "downloadable") {
       if (mapTilesIDs[pickedTile][0] === "copernicus") {
@@ -1054,7 +1290,7 @@ function downloadMapTile() {
         if (mapTilesIDs[pickedTile][0] === "planet") {
           planetMapTiles(mapTilesIDs[pickedTile][1]);
         } else {
-          console.log("error");
+          alertGenericError("MapTile Fehlerhaft");
         }
       }
     } else {
@@ -1067,13 +1303,13 @@ function downloadMapTile() {
           if (status === "ordered") {
             refreshStatus(mapTilesIDs[pickedTile][1]);
           } else {
-            console.log("Download Error");
+            alertGenericError("Download Error");
           }
         }
       }
     }
   } else {
-    console.log("Download Error");
+    alertGenericError("Download Error");
   }
 }
 
@@ -1091,6 +1327,11 @@ function prevTiles() {
 }
 /* Setzt Seitenzähler für MapTiles */
 function updatePageCounterTiles() {
+  if (maxPageTiles > 1) {
+    pageCounterTiles.style.display = "inline";
+  } else {
+    pageCounterTiles.style.display = "none";
+  }
   pageCounterTiles.innerHTML = pageTiles + " / " + maxPageTiles;
   if (pageTiles <= 1) {
     prevTilesButton.disabled = true;
@@ -1134,8 +1375,6 @@ function pickTile(id) {
     pickedTile = id;
     pickedTileButton = pickedTile - (10 * pageTiles) + 10;
   }
-  //console.log(pickedTileButton);
-  //console.log(pickedTile);
   for (var i = 0; i < tilesList.length; i++) {
     if (i == pickedTileButton || tilesList[i].innerHTML == "__") {
       tilesList[i].disabled = true;
@@ -1143,9 +1382,6 @@ function pickTile(id) {
       tilesList[i].disabled = false;
     }
   }
-
-  //console.log(pickedTile);
-  //console.log(mapTilesIDs);
   var polygon = [];
   var mapTilesText = mapTilesIDs[pickedTile][0] + "<br>" + mapTilesIDs[pickedTile][1] + "<br>" + mapTilesIDs[pickedTile][2] + "<br>" + mapTilesIDs[pickedTile][3];
   buttonDownload.style.display = "inline";
@@ -1163,7 +1399,6 @@ function pickTile(id) {
         } else {
           if (status === "ordered") {
             buttonDownload.innerHTML = "Bestellung wird bearbeitet (aktualisieren)";
-            //buttonDownload.disabled = true;
           } else {
             buttonDownload.innerHTML = "error";
             buttonDownload.disabled = true;
@@ -1176,14 +1411,21 @@ function pickTile(id) {
     buttonDownload.disabled = true;
   }
 
-
+  var mapTileCoordinates = "";
   for (var i = 0; i < mapTilesIDs[pickedTile][4].length; i++) {
+    if (mapTileCoordinates === "") {
+      mapTileCoordinates = mapTileCoordinates + mapTilesIDs[pickedTile][4][i];
+    } else {
+      mapTileCoordinates = mapTileCoordinates + "<br>" + mapTilesIDs[pickedTile][4][i];
+    }
     mapTilesText = mapTilesText + "<br>" + mapTilesIDs[pickedTile][4][i];
     polygon.push([mapTilesIDs[pickedTile][4][i][1], mapTilesIDs[pickedTile][4][i][0]]);
   }
-  console.log(mapTilesIDs[pickedTile][4]);
-  mapTileInfo.innerHTML = mapTilesText;
-  //copernicusMapTiles("dc52e819-40ba-4a7b-988c-e003adcd560a");
+  tablePlatform.innerHTML =  mapTilesIDs[pickedTile][0];
+  tableID.innerHTML = mapTilesIDs[pickedTile][1];
+  tableStatus.innerHTML = mapTilesIDs[pickedTile][2];
+  tableTime.innerHTML = mapTilesIDs[pickedTile][3];
+  tableCoordinates.innerHTML = mapTileCoordinates;
   polygonOnMap = new L.polygon([latLongSwitch(polygon)], {fillOpacity: 0}).addTo(map);
   polygonDrawn = true;
 }
@@ -1198,11 +1440,11 @@ function clearMap() {
 
 /* setzt Timespan nach Werten, die der Nutzer eingegeben hat */
 function setTimespan() {
-  if (timespanInput.value >= 0 && timespanInput.value <= 30) {
+  if (timespanInput.value >= 1 && timespanInput.value <= 30) {
     timespan = timespanInput.value;
     updateText2();
   } else {
-    alert("Zeitspanne muss zwischen 0 und 30 liegen");
+    alertParameterError("Zeitspanne", 1, 30);
   }
 }
 
@@ -1210,29 +1452,33 @@ function setTimespan() {
 function setmaxCloudCover() {
   if (maxCloudCoverInput.value >= 0 && maxCloudCoverInput.value <= 100) {
     maxCloudCover = maxCloudCoverInput.value;
+    if (maxCloudCover == "") {
+      maxCloudCover = 0;
+    }
     updateText2();
   } else {
-    alert("Maximale Wolkenbedeckung muss zwischen 0 und 100 liegen");
+    alertParameterError("Maximale Wolkenbedeckung", 0, 100);
   }
 }
 /* UI Update */
 function updateText2() {
-  text3.innerHTML = "Erstellungszeitpunkt " + timespan + " Tage vor/nach der Erstellung des Posts";
-  text4.innerHTML = "Maximal " + maxCloudCover + " % Wolkenbedeckung";
+  if (timespan == 1) {
+    tableTimespan.innerHTML = timespan + " Tag";
+  } else {
+    tableTimespan.innerHTML = timespan + " Tage";
+  }
+  tableCloudCover.innerHTML = maxCloudCover + " %"
 }
 
 /* Zeigt Map Tiles an */
 function showMapTile(uuid) {
-  //clearMap();
-  console.log("showing maptile");
   if (imageOverlayed === true) {
     map.removeLayer(imageOverlay);
   }
-  imageUrl = "https://localhost:3000/mapTiles/" + uuid + ".png";
-  errorOverlayUrl = 'https://cdn-icons-png.flaticon.com/512/110/110686.png';
-  altText = "test";
-  latLngBounds = L.latLngBounds(mapTilesIDs[pickedTile][4]);
-  //console.log(latLngBounds);
+  var imageUrl = "https://localhost:3000/mapTiles/" + uuid + ".png";
+  var errorOverlayUrl = 'https://cdn-icons-png.flaticon.com/512/110/110686.png';
+  var altText = "test";
+  var latLngBounds = L.latLngBounds(mapTilesIDs[pickedTile][4]);
   imageOverlay = L.imageOverlay(imageUrl, latLngBounds, {
       opacity: 1,
       errorOverlayUrl: errorOverlayUrl,
