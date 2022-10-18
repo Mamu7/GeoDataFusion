@@ -626,7 +626,7 @@ async function showTweetsOnMap() {
     map.removeLayer(markerList[i]);
     if (tweetsList[pos] != undefined) {
       if (tweetsList[pos].geo == undefined || tweetsList[pos].geo.coordinates[0] == -3000 || tweetsList[pos].geo.coordinates[1] == -3000) {
-        alertGenericError("Keine Geodaten für Tweet NR " + tweetNR + "gefunden");
+        alertGenericError("Keine Geodaten für Tweet NR " + tweetNR + " gefunden");
       } else {
         markerList[i].setLatLng(tweetsList[pos].geo.coordinates);
         markerList[i].bindPopup("Tweet " + tweetNR).openPopup();
