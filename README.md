@@ -25,6 +25,12 @@
   
 ---
 
+* ImageMagick
+ * Zur Konvertierung von JPEG2000
+ * [Download](https://www.imagemagick.org/script/download.php)
+
+---
+
 * Benötigte APIs
   * Twitter API
     * "appKey", "appSecret", "accessToken", "accessSecret" in twitterClient.js setzen 
