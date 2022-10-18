@@ -26,8 +26,8 @@
 ---
 
 * ImageMagick
- * Zur Konvertierung von JPEG2000
- * [Download](https://www.imagemagick.org/script/download.php)
+  * Zur Konvertierung von JPEG2000
+  * [Download](https://www.imagemagick.org/script/download.php)
 
 ---
 
