@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title></title>
+    <script src="js/sweetalert2.all.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
       integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
       crossorigin=""/>
@@ -14,28 +15,92 @@
   </head>
   <body>
     <div class="row">
-      <div class="column left">
+      <div class="column left" id="leftSide">
         <div id="map"></div>
         <div class="row">
-          <p id="text1"> Klicken um Area of Interest mit Radius von 50 km zu setzen! </p>
-          <div>
-            <input id="input1" type="text" value="50" width="10px">  </input>
-            <button id="button1"> Radius setzen </button>
-            <button id="button2" disabled="true"> Tweets finden! </button>
+          <div id="tweetDiv">
+            <div class="row" style="display:flex">
+              <div width="100%" class="half">
+                <div width="50%" class="tweetText">
+                  <h2>1. Tweets finden!</h2>
+                  <p id="text1"> Auf die Karte klicken um Area of Interest mit Radius von 50 km zu setzen! </p>
+                </div>
+                <div width="50%" class="singleTweet">
+                  <div class="singleTweet0">
+                    <p id="textSingleTweet">Tweet per ID zur Datenbank hinzufügen</p>
+                  </div>
+
+                  <div class="singleTweet1">
+                    <input id="inputSingleTweet" type="text" value="" width="10px">  </input>
+                    <button id="buttonSingleTweet" class="lbutton"> Tweet hinzufügen! </button>
+                  </div>
+
+                </div>
+                <table width="100%">
+                  <tr>
+                    <th width="10%"></th>
+                    <th width="40%">Radius</th>
+                    <th width="20%">Latitude</th>
+                    <th width="20%">Longitude</th>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td id="tableRadius">50 km</td>
+                    <td id="tableLat"></td>
+                    <td id="tableLong"></td>
+                  </tr>
+                  <tr>
+                    <td>Parameter ändern</td>
+                    <td>
+                      <input id="input1" type="text" value="50" width="10px" float="left">  </input>
+                      <button id="button1" class="lbutton" style="display:inline" float="left"> Setzen </button>
+                    </td>
+                  </tr>
+                </table>
+                <div id="tweetButtons">
+
+                  <button id="button2" class="lbutton" style="display:block" disabled="true"> Suchen </button>
+                </div>
+              </div>
+            </div>
             <br>
 
           </div>
           <div class="row">
-            <p id="text2">Klicken um nach Satellitenbildern mit folgenden Parametern zu suchen:</p>
-            <p id="text3">Erstellungszeitpunkt 5 Tage vor/nach der Erstellung des Posts</p>
-            <p id="text4">Maximal 50 % Wolkenbedeckung</p>
-            <input id="input2" type="text" name="" value="5" style="display:inline">
-            <button id="buttonTime" style="display:inline"> Zeitspanne setzen </button>
-            <input id="input3" type="text" name="" value="50" style="display:inline">
-            <button id="buttonClouds" style="display:inline"> Maximale Wolkenbedeckung setzen </button>
-            <button id="buttonSat" style="display:inline" disabled="true"> Satellitenbilder finden! </button>
-            <div style="display:inline">
-              <br><br>
+            <div id="satDiv">
+              <h2>3. Satellitenbilder finden!</h2>
+              <p id="text2">Klicken um nach Satellitenbildern mit folgenden Parametern zu suchen:</p>
+              <table width="100%">
+                <tr>
+                  <th width="10%"></th>
+                  <th width="40%">Zeitspanne (vor/nach der Erstellung des Posts)</th>
+                  <th width="40%">Maximale Wolkenbedeckung</th>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td id="tableTimespan">5 Tage</td>
+                  <td id="tableCloudCover">50 %</td>
+                </tr>
+                <tr>
+                  <td>Parameter ändern</td>
+                  <td>
+                    <input id="input2" type="text" name="" value="5" style="display:inline">
+                    <button id="buttonTime" class="lbutton" style="display:inline">  Setzen  </button>
+                  </td>
+                  <td>
+                    <input id="input3" type="text" name="" value="50" style="display:inline">
+                    <button id="buttonClouds" class="lbutton" style="display:inline"> Setzen </button>
+                  </td>
+                </tr>
+              </table>
+
+
+              <br>
+              <button id="buttonSat" class="lbutton" style="display:inline" disabled="true"> Suchen </button>
+            </div>
+
+            <div id="satDiv2">
+              <h2>4. Satellitenbild wählen!</h2>
               <button class="tiles" id="prevTiles" disabled="true"><<<</button>
               <button class="tiles" id="tiles0" disabled="true">__</button>
               <button class="tiles" id="tiles1" disabled="true">__</button>
@@ -48,53 +113,367 @@
               <button class="tiles" id="tiles8" disabled="true">__</button>
               <button class="tiles" id="tiles9" disabled="true">__</button>
               <button class="tiles" id="nextTiles" disabled="true">>>></button>
-              <a id="pageCounterTiles">0 / 0</a>
+              <button class="tiles" id="pageCounterTiles" disabled="true">0 / 0</button>
+
+
+              <button id="buttonDownload" class="lbutton" style="display:none">Download</button>
+              <p id="progressText" style="display:none">Download wird gestartet...</p>
+              <div id="progressBarOut" style="display:none">
+                <div id="progressBarIn" style="display:none">
+                </div>
+              </div>
+              <br><br><br>
+              <table width="100%">
+                <tr>
+                  <th>Plattform</th>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Erstellungszeitpunkt</th>
+                  <th>Koordinaten</th>
+                </tr>
+                  <td id="tablePlatform"></td>
+                  <td id="tableID"></td>
+                  <td id="tableStatus"></td>
+                  <td id="tableTime"></td>
+                  <td id="tableCoordinates"></td>
+                <tr>
+
+                </tr>
+              </table>
+              <p id="mapTileInfo"></p>
             </div>
           </div>
         </div>
         <div class="">
-          <p id="p10"></p>
-          <button id="buttonLink" style="display:none">Tweet Öffnen</button>
-          <button id="buttonDownload" style="display:none">Download</button>
-          <p id="mapTileInfo"></p>
+
+          <br><br>
+
         </div>
       </div>
-      <div class="column right">
-        <div>
+      <div class="column right" id="rightSide">
+        <div id="tweetsDiv">
+          <div id="tweetsDiv1">
+
+
+          <h2>2. Tweet wählen!</h2>
           <div id="nextprev">
-            <button id="prev" disabled="true"><<<</button>
-            <a id="pageCounter"></a>
-            <button id="next" disabled="true">>>></button>
+            <div width="30%" style="display:inline">
+              <button id="prev" class="lbutton" style="display:inline" disabled="true"><<<</button>
+            </div>
+            <div id="pageCounterBox">
+
+              <button id="pageCounter" class="lbutton" style="display:inline" disabled="true">0 / 0</button>
+            </div>
+            <div width="30%" style="display:inline">
+              <button id="next" class="lbutton" style="display:inline" disabled="true">>>></button>
+            </div>
           </div>
+          <br>
+          <button id="buttonLink" class="lbutton" style="display:none">Tweet Öffnen</button>
+          </div>
+          <div id="tweetsDiv2">
+
+
+          <br>
           <div class="tw1" id="tweetButton0">
-            <p id="p0"></p>
+            <h3 id="p0">Tweet 1</h3>
+            <table class="tweetTable" id="tweetTable0">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr00"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr01"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr02"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr03"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr04"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr05"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw2" id="tweetButton1">
-            <p id="p1"></p>
+            <h3 id="p1">Tweet 2</h3>
+            <table class="tweetTable" id="tweetTable1">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr10"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr11"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr12"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr13"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr14"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr15"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw1" id="tweetButton2">
-            <p id="p2"></p>
+            <h3 id="p2">Tweet 3</h3>
+            <table class="tweetTable" id="tweetTable2">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr20"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr21"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr22"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr23"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr24"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr25"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw2" id="tweetButton3">
-            <p id="p3"></p>
+            <h3 id="p3">Tweet 4</h3>
+            <table class="tweetTable" id="tweetTable3">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr30"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr31"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr32"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr33"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr34"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr35"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw1" id="tweetButton4">
-            <p id="p4"></p>
+            <h3 id="p4">Tweet 5</h3>
+            <table class="tweetTable" id="tweetTable4">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr40"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr41"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr42"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr43"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr44"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr45"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw2" id="tweetButton5">
-            <p id="p5"></p>
+            <h3 id="p5">Tweet 6</h3>
+            <table class="tweetTable" id="tweetTable5">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr50"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr51"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr52"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr53"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr54"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr55"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw1" id="tweetButton6">
-            <p id="p6"></p>
+            <h3 id="p6">Tweet 7</h3>
+            <table class="tweetTable" id="tweetTable6">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr60"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr61"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr62"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr63"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr64"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr65"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw2" id="tweetButton7">
-            <p id="p7"></p>
+            <h3 id="p7">Tweet 8</h3>
+            <table class="tweetTable" id="tweetTable7">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr70"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr71"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr72"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr73"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr74"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr75"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw1" id="tweetButton8">
-            <p id="p8"></p>
+            <h3 id="p8">Tweet 9</h3>
+            <table class="tweetTable" id="tweetTable8">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr80"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr81"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr82"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr83"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr84"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr85"></td>
+              </tr>
+            </table>
           </div>
+          <br>
           <div class="tw2" id="tweetButton9">
-            <p id="p9"></p>
+            <h3 id="p9">Tweet 10</h3>
+            <table class="tweetTable" id="tweetTable9">
+              <tr>
+                <th class="tweetTableTh">Text: </th>
+                <td class="tweetTableTd" id="tweetAttr90"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Autor: </th>
+                <td class="tweetTableTd" id="tweetAttr91"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Erstellungszeitpunkt: </th>
+                <td class="tweetTableTd" id="tweetAttr92"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Koordinaten: </th>
+                <td class="tweetTableTd" id="tweetAttr93"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Location: </th>
+                <td class="tweetTableTd" id="tweetAttr94"></td>
+              </tr>
+              <tr>
+                <th class="tweetTableTh">Geotagging: </th>
+                <td class="tweetTableTd" id="tweetAttr95"></td>
+              </tr>
+            </table>
+          </div>
           </div>
         </div>
       </div>
@@ -102,7 +481,7 @@
 
 
 
-
+    <script sync src="https://platform.twitter.com/widgets.js"></script>
     <script type="text/javascript">
     </script>
 
