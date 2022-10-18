@@ -16,6 +16,10 @@ const StreamZip = require('node-stream-zip');
 const MongoClient = require('mongodb').MongoClient
 const NodeGeocoder = require('node-geocoder');
 
+if (!fs.existsSync(__dirname + "/public/mapTiles")) {
+  fs.mkdirSync(__dirname + "/public/mapTiles");
+}
+
 function isJsonString(str) {
     try {
         JSON.parse(str);
