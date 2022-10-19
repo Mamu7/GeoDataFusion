@@ -34,7 +34,7 @@
 ---
 
 * Benötigte APIs
-  * Twitter API
+  * Twitter API --> "Elevated" Status nötig!
     * "appKey", "appSecret", "accessToken", "accessSecret" in twitterClient.js setzen 
   * LocationIQ
     * "APIKEY" in .env setzen
